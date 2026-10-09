@@ -44,6 +44,7 @@ test('wins level 1 with scripted input', async ({ page }) => {
     timeout: 200_000,
   });
   expect((await snapshot(page)).outcome).toBe('won');
+  console.log(`frame rate at win: ${(await fps(page)).toFixed(1)} fps`);
   expect(Number(await page.getByTestId('result-score').textContent())).toBeGreaterThan(1000);
   await expect(page.getByRole('img', { name: '3 of 3 crowns' })).toBeVisible();
 });

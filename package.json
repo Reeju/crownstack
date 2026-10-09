@@ -14,7 +14,8 @@
     "e2e": "playwright test",
     "icons": "node scripts/gen-icons.mjs",
     "prepare": "husky",
-    "capture": "node scripts/capture.mjs"
+    "capture": "node scripts/capture.mjs",
+    "bot": "vitest run --config vitest.bot.config.ts --disable-console-intercept"
   },
   "license": "MIT",
   "devEngines": {
