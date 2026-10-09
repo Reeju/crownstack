@@ -1,0 +1,28 @@
+{
+  "id": 1,
+  "name": "First Watch",
+  "map": "yard-a",
+  "startGold": 60,
+  "parTimeSec": 90,
+  "coinCap": 60,
+  "squad": { "archers": 4, "tier": 0 },
+  "pads": [{ "type": "tower", "plot": "ne", "cost": 50 }],
+  "looseCoins": [
+    { "pos": [25, 15], "count": 3 },
+    { "pos": [19, 22], "count": 3 }
+  ],
+  "waves": [
+    { "at": 6, "path": "ne", "groups": [{ "type": "raider", "count": 6, "interval": 0.7 }] },
+    { "at": 30, "path": "ne", "groups": [{ "type": "raider", "count": 8, "interval": 0.6 }] },
+    { "at": 55, "path": "ne", "groups": [{ "type": "raider", "count": 10, "interval": 0.5 }] }
+  ],
+  "tutorial": [
+    { "trigger": "start", "text": "Drag to move. Walk over coins to stack them." },
+    {
+      "trigger": "gold>=50",
+      "text": "Stand on the green pad to build a tower.",
+      "pointAt": "pad:tower-ne"
+    },
+    { "trigger": "padPaid:tower", "text": "Raiders are coming down the path. Hold the fence!" }
+  ]
+}

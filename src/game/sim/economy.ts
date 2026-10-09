@@ -1,0 +1,25 @@
+import type { World } from './world';
+
+/** Cost of the n-th repeat purchase: +30% each time, rounded to the nearest 10 (SPEC §3.4). */
+export function repeatCost(base: number, purchases: number, mult: number): number {
+  return Math.max(10, Math.round((base * mult ** purchases) / 10) * 10);
+}
+
+/** Total gold shown on the HUD: the stack on the king's head plus the bank. */
+export function totalGold(w: World): number {
+  return w.eco.stackCoins * w.cfg.units.economy.coinValue + w.eco.bank;
+}
+
+/** Adds one coin: onto the stack if there is room, otherwise into the bank. */
+export function gainCoin(w: World): void {
+  const value = w.cfg.units.economy.coinValue;
+  if (w.eco.stackCoins < w.eco.coinCap) w.eco.stackCoins++;
+  else w.eco.bank += value;
+  w.eco.goldEarned += value;
+}
+
+/** Stack capacity for a level before keep upgrades, never below one coin. */
+export function baseCoinCap(w: World): number {
+  const { level, units, difficulty, meta } = w.cfg;
+  return Math.max(1, level.coinCap + meta.coinCap + units.difficulty[difficulty].coinCapDelta);
+}
