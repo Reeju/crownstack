@@ -27,7 +27,6 @@ import {
 import { PadView } from './padView';
 import { ARCHER_TIER_COLORS, PALETTE } from './palette';
 
-const MAX_DPR = 2;
 /** Characters are drawn larger than their collision radius so they read on a phone. */
 const UNIT_SCALE = 1.5;
 const GROUND_COIN_SCALE = 1.3;
@@ -35,6 +34,14 @@ const WALK_BOB_HEIGHT = 0.07;
 const WALK_BOB_RATE = 14;
 const PAY_STREAM_COINS = 5;
 const PAY_STREAM_ARC = 1.6;
+
+/** Render quality tier (SPEC §7.3). */
+export type Quality = 'low' | 'high';
+
+const QUALITY = {
+  low: { antialias: false, maxDpr: 1 },
+  high: { antialias: true, maxDpr: 2 },
+} as const;
 
 /** three.js view of a World. Reads simulation state; never writes it. */
 export class GameRenderer {
@@ -60,10 +67,13 @@ export class GameRenderer {
   private clock = 0;
   private snapCamera = true;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    private readonly quality: Quality,
+  ) {
     this.renderer = new WebGLRenderer({
       canvas,
-      antialias: true,
+      antialias: QUALITY[quality].antialias,
       powerPreference: 'high-performance',
     });
     this.scene.background = new Color(PALETTE.background);
@@ -113,7 +123,7 @@ export class GameRenderer {
   resize(world: World): void {
     const { clientWidth, clientHeight } = this.canvas;
     if (clientWidth === 0 || clientHeight === 0) return;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_DPR));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, QUALITY[this.quality].maxDpr));
     this.renderer.setSize(clientWidth, clientHeight, false);
     this.iso.fit(clientWidth, clientHeight, world.cfg.map.cameraBounds);
     this.snapCamera = true;
@@ -193,6 +203,11 @@ export class GameRenderer {
     this.level?.update(w);
     this.pads?.update(w);
     this.renderer.render(this.scene, this.iso.camera);
+  }
+
+  /** Draw calls issued by the last frame. */
+  get drawCalls(): number {
+    return this.renderer.info.render.calls;
   }
 
   dispose(): void {

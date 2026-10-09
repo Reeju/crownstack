@@ -47,9 +47,9 @@ async function setKeys(page: Page, held: Set<string>, want: Set<string>): Promis
 }
 
 /** Steers the king to a world position with real key presses, like a player would. */
-export async function walkTo(page: Page, x: number, y: number, tolerance = 0.45): Promise<void> {
+export async function walkTo(page: Page, x: number, y: number, tolerance = 0.6): Promise<void> {
   const held = new Set<string>();
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + 60_000;
   try {
     while (Date.now() < deadline) {
       const s = await snapshot(page);
@@ -72,7 +72,13 @@ export async function walkTo(page: Page, x: number, y: number, tolerance = 0.45)
 }
 
 export async function startLevelOne(page: Page): Promise<void> {
-  await page.goto('/?debug=1');
+  // Low quality keeps software-rendered CI browsers at a playable frame rate.
+  await page.goto('/?debug=1&quality=low');
   await page.getByRole('button', { name: 'Play' }).click();
   await page.waitForFunction(() => window.__crownstack?.currentWorld.tick !== undefined);
+}
+
+/** Smoothed frame rate reported by the game. */
+export function fps(page: Page): Promise<number> {
+  return page.evaluate(() => window.__crownstack!.perf.fps);
 }

@@ -2,7 +2,7 @@ import { getLevel, getMap, units } from '../content';
 import type { Difficulty } from '../content/schema';
 import { InputManager } from './input';
 import { FixedLoop } from './loop';
-import { GameRenderer } from './render/scene';
+import { GameRenderer, type Quality } from './render/scene';
 import { totalGold } from './sim/economy';
 import { createWorld } from './sim/load';
 import { runSeed } from './sim/rng';
@@ -28,7 +28,16 @@ export interface RunOptions {
   meta?: MetaBonuses;
 }
 
+/** Smoothed frame timings for the `?debug=1` overlay and the performance tests. */
+export interface PerfStats {
+  fps: number;
+  simMs: number;
+  renderMs: number;
+  drawCalls: number;
+}
+
 const BACKDROP_LEVEL = 1;
+const PERF_SMOOTHING = 0.05;
 
 /**
  * Owns the frame loop, input, simulation and renderer (SPEC §6.2). React talks
@@ -41,12 +50,15 @@ export class Game {
   private readonly resizeObserver: ResizeObserver;
   private world: World;
   private readonly hud: HudState = { levelName: '', gold: -1 };
+  readonly perf: PerfStats = { fps: 60, simMs: 0, renderMs: 0, drawCalls: 0 };
 
   constructor(
     canvas: HTMLCanvasElement,
     private readonly callbacks: GameCallbacks,
   ) {
-    this.renderer = new GameRenderer(canvas);
+    const params = new URLSearchParams(location.search);
+    const quality: Quality = params.get('quality') === 'low' ? 'low' : 'high';
+    this.renderer = new GameRenderer(canvas, quality);
     this.input = new InputManager(canvas, () => this.callbacks.onPauseRequest());
     this.loop = new FixedLoop({ step: this.step, render: this.render });
 
@@ -61,7 +73,7 @@ export class Game {
     this.loop.start();
 
     // `?debug=1` exposes the game for the Playwright scripts and debug overlay.
-    if (new URLSearchParams(location.search).has('debug')) {
+    if (params.has('debug')) {
       (window as unknown as { __crownstack?: Game }).__crownstack = this;
     }
   }
@@ -113,12 +125,19 @@ export class Game {
 
   private readonly step = (): void => {
     const w = this.world;
+    const t0 = performance.now();
     this.input.read(w.intent, this.renderer.iso, w.x[w.hero], w.y[w.hero]);
     step(w);
+    this.perf.simMs += (performance.now() - t0 - this.perf.simMs) * PERF_SMOOTHING;
   };
 
   private readonly render = (alpha: number, frameSec: number): void => {
+    const t0 = performance.now();
     this.renderer.render(this.world, alpha, frameSec);
+    const perf = this.perf;
+    perf.renderMs += (performance.now() - t0 - perf.renderMs) * PERF_SMOOTHING;
+    if (frameSec > 0) perf.fps += (1 / frameSec - perf.fps) * PERF_SMOOTHING;
+    perf.drawCalls = this.renderer.drawCalls;
     this.syncHud();
   };
 

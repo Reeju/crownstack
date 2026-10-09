@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { snapshot, startLevelOne, walkTo } from './helpers';
+import { fps, snapshot, startLevelOne, walkTo } from './helpers';
 
 test('collects coins and pays the tower pad', async ({ page }) => {
   await startLevelOne(page);
@@ -12,7 +12,8 @@ test('collects coins and pays the tower pad', async ({ page }) => {
   await expect.poll(async () => (await snapshot(page)).gold).toBeGreaterThan(60);
 
   await walkTo(page, 30, 13.6);
-  await expect.poll(async () => (await snapshot(page)).towers, { timeout: 15_000 }).toBe(1);
+  await expect.poll(async () => (await snapshot(page)).towers, { timeout: 30_000 }).toBe(1);
+  console.log(`frame rate: ${(await fps(page)).toFixed(1)} fps`);
   expect((await snapshot(page)).gold).toBeLessThan(60);
 });
 
