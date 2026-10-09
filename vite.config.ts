@@ -43,7 +43,6 @@ export default defineConfig({
   preview: { port: 4173, strictPort: true },
   test: {
     include: ['tests/unit/**/*.test.ts'],
-    benchmark: { include: ['tests/unit/**/*.bench.ts'] },
     environment: 'node',
   },
 });

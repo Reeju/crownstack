@@ -10,6 +10,7 @@ import { MAX_ENTITIES, NO_ENTITY } from './components';
 import { createEventBuffer, type EventBuffer } from './events';
 import type { PathData } from './pathing';
 import { Rng } from './rng';
+import { createSpatialHash, type SpatialHash } from './spatial';
 import type { WaveState } from './waves';
 
 /** Player input for one step, in world space. `move` has length <= 1. */
@@ -106,6 +107,10 @@ export interface World {
   readonly plots: PlotState[];
   readonly fences: Int32Array;
   readonly waves: WaveState[];
+  /** Living enemies, rebuilt every step. */
+  readonly enemyHash: SpatialHash;
+  /** The king and squad archers, rebuilt every step. */
+  readonly friendHash: SpatialHash;
 
   tick: number;
   time: number;
@@ -116,6 +121,8 @@ export interface World {
   keep: number;
   enemiesAlive: number;
   archersAlive: number;
+  /** Number of waves that have started (for the HUD wave counter). */
+  wavesStarted: number;
 
   readonly king: {
     iframes: number;
@@ -141,7 +148,7 @@ export interface World {
     purchases: Record<PadType, number>;
   };
 
-  readonly stats: { kills: number; bonusScore: number };
+  readonly stats: { kills: number; bonusScore: number; rewardGold: number };
 
   // ── Entity pool (struct of arrays) ──
   highWater: number;
@@ -214,6 +221,8 @@ export function createEmptyWorld(
     plots: statics.plots,
     fences: new Int32Array(statics.fenceCount).fill(NO_ENTITY),
     waves: statics.waves,
+    enemyHash: createSpatialHash(cfg.map.size.w, cfg.map.size.h, n),
+    friendHash: createSpatialHash(cfg.map.size.w, cfg.map.size.h, n),
     tick: 0,
     time: 0,
     outcome: 'playing',
@@ -222,6 +231,7 @@ export function createEmptyWorld(
     keep: NO_ENTITY,
     enemiesAlive: 0,
     archersAlive: 0,
+    wavesStarted: 0,
     king: {
       iframes: 0,
       sinceHit: 0,
@@ -243,7 +253,7 @@ export function createEmptyWorld(
       goldEarned: 0,
       purchases: { tower: 0, forge: 0, repair: 0, keep: 0, brazier: 0, gate: 0 },
     },
-    stats: { kills: 0, bonusScore: 0 },
+    stats: { kills: 0, bonusScore: 0, rewardGold: 0 },
     highWater: 0,
     freeCount: 0,
     freeList: new Int32Array(n),

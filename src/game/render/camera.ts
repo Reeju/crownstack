@@ -27,6 +27,7 @@ export interface Bounds {
 export class IsoCamera {
   readonly camera = new OrthographicCamera(-1, 1, 1, -1, 0.1, 400);
   readonly yaw = YAW;
+  readonly pitch = PITCH;
   /** CSS pixels per world unit at the current zoom. */
   pxPerUnit = MIN_PX_PER_UNIT;
 
@@ -119,6 +120,14 @@ export class IsoCamera {
     const v = (this.centre.v - (clientY - this.viewH / 2) / this.pxPerUnit) / Math.sin(PITCH);
     out.x = u * this.rightX + v * this.upX;
     out.y = u * this.rightZ + v * this.upZ;
+  }
+
+  /** Projects a ground point to client-space pixels. */
+  groundToScreen(x: number, z: number, out: { x: number; y: number }): void {
+    const u = x * this.rightX + z * this.rightZ;
+    const v = (x * this.upX + z * this.upZ) * Math.sin(PITCH);
+    out.x = this.viewW / 2 + (u - this.centre.u) * this.pxPerUnit;
+    out.y = this.viewH / 2 - (v - this.centre.v) * this.pxPerUnit;
   }
 
   private apply(frameSec: number): void {

@@ -85,6 +85,7 @@ export async function startLevelOne(page: Page): Promise<void> {
   // Low quality keeps software-rendered CI browsers at a playable frame rate.
   await page.goto('/?debug=1&quality=low');
   await page.getByRole('button', { name: 'Play' }).click();
+  await page.getByRole('button', { name: 'Pause' }).waitFor();
   await page.waitForFunction(() => window.__crownstack?.currentWorld.tick !== undefined);
 }
 

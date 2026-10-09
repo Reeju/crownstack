@@ -29,3 +29,36 @@ test('pauses and resumes', async ({ page }) => {
   await page.getByRole('button', { name: 'Resume' }).click();
   await expect.poll(async () => (await snapshot(page)).time).toBeGreaterThan(before);
 });
+
+test('wins level 1 with scripted input', async ({ page }) => {
+  test.setTimeout(240_000);
+  await startLevelOne(page);
+
+  // Grab the loose coins, build the tower, then hold the middle of the yard.
+  await walkTo(page, 25, 15);
+  await walkTo(page, 30, 13.6);
+  await expect.poll(async () => (await snapshot(page)).towers, { timeout: 30_000 }).toBe(1);
+  await walkTo(page, 27, 18);
+
+  await expect(page.getByRole('heading', { name: 'Camp defended!' })).toBeVisible({
+    timeout: 200_000,
+  });
+  expect((await snapshot(page)).outcome).toBe('won');
+  expect(Number(await page.getByTestId('result-score').textContent())).toBeGreaterThan(1000);
+  await expect(page.getByRole('img', { name: '3 of 3 crowns' })).toBeVisible();
+});
+
+test('falls when the king dies, and Retry replays the same seed', async ({ page }) => {
+  await startLevelOne(page);
+  const seed = await page.evaluate(() => window.__crownstack!.currentWorld.cfg.seed);
+  await page.evaluate(() => {
+    const w = window.__crownstack!.currentWorld;
+    w.hp[w.hero] = 0;
+  });
+  await expect(page.getByRole('heading', { name: 'The camp has fallen' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Retry' }).click();
+  await expect(page.getByRole('heading', { name: 'The camp has fallen' })).toBeHidden();
+  expect(await page.evaluate(() => window.__crownstack!.currentWorld.cfg.seed)).toBe(seed);
+  expect((await snapshot(page)).outcome).toBe('playing');
+});

@@ -3,9 +3,12 @@ import type { Difficulty } from '../content/schema';
 import { InputManager } from './input';
 import { FixedLoop } from './loop';
 import { GameRenderer, type Quality } from './render/scene';
+import { WAVE_ANNOUNCE_SEC } from './sim/constants';
 import { totalGold } from './sim/economy';
+import { Ev, type EvType } from './sim/events';
 import { createWorld } from './sim/load';
 import { runSeed } from './sim/rng';
+import { runResult, type RunResult } from './sim/score';
 import { step } from './sim/step';
 import { NO_META, type MetaBonuses, type World } from './sim/world';
 
@@ -13,12 +16,22 @@ import { NO_META, type MetaBonuses, type World } from './sim/world';
 export interface HudState {
   levelName: string;
   gold: number;
+  /** Waves started so far and the level's total. */
+  wave: number;
+  waveCount: number;
+  /** Keep HP as a 0..100 percentage. */
+  keepHp: number;
+  /** Number of the wave being announced, or 0 when no banner is showing. */
+  bannerWave: number;
+  /** Screen-space direction (degrees, 0 = right, clockwise) toward the announced wave's spawn. */
+  bannerAngle: number;
 }
 
 export interface GameCallbacks {
   onHud(hud: HudState): void;
   /** The player asked to pause (Esc / P / Start, or the tab was hidden). */
   onPauseRequest(): void;
+  onOutcome(won: boolean, result: RunResult): void;
 }
 
 export interface RunOptions {
@@ -44,16 +57,20 @@ const PERF_SMOOTHING = 0.05;
  * to it through start/pause/resume and receives HUD updates via callbacks.
  */
 export class Game {
+  readonly perf: PerfStats = { fps: 60, simMs: 0, renderMs: 0, drawCalls: 0 };
   private readonly renderer: GameRenderer;
   private readonly input: InputManager;
   private readonly loop: FixedLoop;
   private readonly resizeObserver: ResizeObserver;
   private world: World;
-  private readonly hud: HudState = { levelName: '', gold: -1 };
-  readonly perf: PerfStats = { fps: 60, simMs: 0, renderMs: 0, drawCalls: 0 };
+  private hud: HudState = emptyHud();
+  private bannerWave = 0;
+  private bannerUntil = 0;
+  private bannerSpawn = { x: 0, y: 0 };
+  private readonly screenPoint = { x: 0, y: 0 };
 
   constructor(
-    canvas: HTMLCanvasElement,
+    private readonly canvas: HTMLCanvasElement,
     private readonly callbacks: GameCallbacks,
   ) {
     const params = new URLSearchParams(location.search);
@@ -91,7 +108,8 @@ export class Game {
   start(options: RunOptions): void {
     this.world = this.createRun(options);
     this.renderer.loadLevel(this.world);
-    this.hud.gold = -1;
+    this.hud = emptyHud();
+    this.bannerWave = 0;
     this.loop.paused = false;
   }
 
@@ -129,7 +147,30 @@ export class Game {
     this.input.read(w.intent, this.renderer.iso, w.x[w.hero], w.y[w.hero]);
     step(w);
     this.perf.simMs += (performance.now() - t0 - this.perf.simMs) * PERF_SMOOTHING;
+
+    const ev = w.events;
+    for (let i = 0; i < ev.count; i++) {
+      this.handleEvent(ev.type[i] as EvType, ev.x[i], ev.y[i], ev.a[i], ev.b[i]);
+    }
   };
+
+  private handleEvent(type: EvType, x: number, y: number, a: number, b: number): void {
+    this.renderer.onEvent(type, x, y, a, b);
+    switch (type) {
+      case Ev.WaveAnnounced:
+        this.bannerWave = a + 1;
+        this.bannerUntil = this.world.time + WAVE_ANNOUNCE_SEC;
+        this.bannerSpawn = { x, y };
+        break;
+      case Ev.LevelWon:
+      case Ev.LevelLost:
+        this.loop.paused = true;
+        this.callbacks.onOutcome(type === Ev.LevelWon, runResult(this.world));
+        break;
+      default:
+        break;
+    }
+  }
 
   private readonly render = (alpha: number, frameSec: number): void => {
     const t0 = performance.now();
@@ -142,15 +183,48 @@ export class Game {
   };
 
   private syncHud(): void {
-    const gold = totalGold(this.world);
-    const levelName = this.world.cfg.level.name;
-    if (gold === this.hud.gold && levelName === this.hud.levelName) return;
-    this.hud.gold = gold;
-    this.hud.levelName = levelName;
-    this.callbacks.onHud({ ...this.hud });
+    const w = this.world;
+    const prev = this.hud;
+    const bannerWave = w.time < this.bannerUntil ? this.bannerWave : 0;
+    let bannerAngle = prev.bannerAngle;
+    if (bannerWave !== 0 && bannerWave !== prev.bannerWave) {
+      // Point from the middle of the screen toward where the wave will appear.
+      this.renderer.iso.groundToScreen(this.bannerSpawn.x, this.bannerSpawn.y, this.screenPoint);
+      const dx = this.screenPoint.x - this.canvas.clientWidth / 2;
+      const dy = this.screenPoint.y - this.canvas.clientHeight / 2;
+      bannerAngle = Math.round((Math.atan2(dy, dx) * 180) / Math.PI);
+    }
+    const next: HudState = {
+      levelName: w.cfg.level.name,
+      gold: totalGold(w),
+      wave: w.wavesStarted,
+      waveCount: w.waves.length,
+      keepHp: Math.ceil((w.hp[w.keep] / w.maxHp[w.keep]) * 100),
+      bannerWave,
+      bannerAngle,
+    };
+    for (const key of Object.keys(next) as (keyof HudState)[]) {
+      if (next[key] !== prev[key]) {
+        this.hud = next;
+        this.callbacks.onHud(next);
+        return;
+      }
+    }
   }
 
   private readonly onVisibilityChange = (): void => {
     if (document.hidden && !this.loop.paused) this.callbacks.onPauseRequest();
+  };
+}
+
+function emptyHud(): HudState {
+  return {
+    levelName: '',
+    gold: -1,
+    wave: 0,
+    waveCount: 0,
+    keepHp: 100,
+    bannerWave: 0,
+    bannerAngle: 0,
   };
 }
