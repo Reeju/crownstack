@@ -1,0 +1,131 @@
+{
+  "king": {
+    "hp": 200,
+    "speed": 5.0,
+    "radius": 0.45,
+    "iframesSec": 1,
+    "regenPerSec": 5,
+    "regenDelaySec": 4,
+    "magnetRadius": 1.2,
+    "dashSpeedMult": 3,
+    "dashSec": 0.2,
+    "dashCooldownSec": 2
+  },
+  "archer": {
+    "speed": 5.5,
+    "radius": 0.35,
+    "arrowSpeed": 18,
+    "ringRadius": 1.5,
+    "tiers": [
+      { "hp": 40, "damage": 20, "attackInterval": 0.8, "range": 7 },
+      { "hp": 70, "damage": 30, "attackInterval": 0.7, "range": 8 },
+      { "hp": 110, "damage": 45, "attackInterval": 0.6, "range": 9 }
+    ]
+  },
+  "tower": {
+    "radius": 0.6,
+    "tiers": [
+      { "hp": 60, "damage": 20, "attackInterval": 0.8, "range": 9 },
+      { "hp": 100, "damage": 30, "attackInterval": 0.8, "range": 9 },
+      { "hp": 160, "damage": 45, "attackInterval": 0.8, "range": 9 }
+    ]
+  },
+  "enemies": {
+    "raider": {
+      "model": "raider",
+      "hp": 20,
+      "damage": 10,
+      "attackInterval": 1.0,
+      "range": 0.8,
+      "speed": 3.0,
+      "radius": 0.35,
+      "coins": 1
+    },
+    "brute": {
+      "model": "brute",
+      "hp": 60,
+      "damage": 20,
+      "attackInterval": 1.2,
+      "range": 0.8,
+      "speed": 2.6,
+      "radius": 0.5,
+      "coins": 3
+    },
+    "giant": {
+      "model": "giant",
+      "hp": 600,
+      "damage": 60,
+      "attackInterval": 2.0,
+      "range": 1.5,
+      "speed": 1.8,
+      "radius": 0.9,
+      "coins": 10,
+      "scoreBonus": 500,
+      "knockback": 2,
+      "staggerHits": 30
+    },
+    "chieftain": {
+      "model": "chieftain",
+      "hp": 2000,
+      "damage": 100,
+      "attackInterval": 2.5,
+      "range": 2.0,
+      "speed": 1.6,
+      "radius": 1.2,
+      "coins": 30,
+      "scoreBonus": 500,
+      "knockback": 2,
+      "boss": true,
+      "slam": { "every": 8, "radius": 3, "damage": 100 }
+    },
+    "chieftain-2": {
+      "model": "chieftain",
+      "scale": 1.1,
+      "hp": 3500,
+      "damage": 100,
+      "attackInterval": 2.5,
+      "range": 2.0,
+      "speed": 1.6,
+      "radius": 1.3,
+      "coins": 30,
+      "scoreBonus": 500,
+      "knockback": 2,
+      "boss": true,
+      "slam": { "every": 8, "radius": 3, "damage": 100 }
+    },
+    "chieftain-3": {
+      "model": "chieftain",
+      "scale": 1.25,
+      "hp": 6000,
+      "damage": 100,
+      "attackInterval": 2.5,
+      "range": 2.0,
+      "speed": 1.6,
+      "radius": 1.5,
+      "coins": 30,
+      "scoreBonus": 500,
+      "knockback": 2,
+      "boss": true,
+      "slam": { "every": 8, "radius": 3, "damage": 100 },
+      "summon": { "type": "raider", "count": 4, "every": 10 }
+    }
+  },
+  "fence": { "hp": 150 },
+  "keep": { "hp": 1000, "hpPerTier": 250, "archersPerTier": 2 },
+  "economy": {
+    "coinValue": 10,
+    "coinLifetimeSec": 20,
+    "coinBlinkSec": 5,
+    "padDrawPerSec": 100,
+    "repeatCostMult": 1.3,
+    "gearLifetimeSec": 30,
+    "coinCapPerKeepTier": 10,
+    "maxCoinCap": 120,
+    "maxKeepTier": 3
+  },
+  "difficulty": {
+    "easy": { "enemyHpMult": 0.7, "coinCapDelta": 0 },
+    "normal": { "enemyHpMult": 1, "coinCapDelta": 0 },
+    "hard": { "enemyHpMult": 1.4, "coinCapDelta": -20 }
+  }
+}
