@@ -46,7 +46,11 @@ async function setKeys(page: Page, held: Set<string>, want: Set<string>): Promis
   for (const key of want) held.add(key);
 }
 
-/** Steers the king to a world position with real key presses, like a player would. */
+/**
+ * Steers the king to a world position with real key presses, like a player
+ * would. Returns once he has come to rest within `tolerance` of the target;
+ * key releases lag a frame or two, so arrival is re-checked after stopping.
+ */
 export async function walkTo(page: Page, x: number, y: number, tolerance = 0.6): Promise<void> {
   const held = new Set<string>();
   const deadline = Date.now() + 60_000;
@@ -55,7 +59,13 @@ export async function walkTo(page: Page, x: number, y: number, tolerance = 0.6):
       const s = await snapshot(page);
       const dx = x - s.x;
       const dy = y - s.y;
-      if (Math.hypot(dx, dy) < tolerance) return;
+      if (Math.hypot(dx, dy) < tolerance) {
+        await setKeys(page, held, new Set());
+        await page.waitForTimeout(150);
+        const rest = await snapshot(page);
+        if (Math.hypot(x - rest.x, y - rest.y) < tolerance) return;
+        continue;
+      }
       // World delta -> screen axes (see game/input/index.ts).
       const sx = dx * Math.cos(YAW) - dy * Math.sin(YAW);
       const sy = dx * Math.sin(YAW) + dy * Math.cos(YAW);
