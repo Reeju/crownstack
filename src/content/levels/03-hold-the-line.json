@@ -1,0 +1,129 @@
+{
+  "id": 3,
+  "name": "Hold the Line",
+  "map": "yard-a",
+  "startGold": 100,
+  "parTimeSec": 150,
+  "coinCap": 60,
+  "squad": {
+    "archers": 5,
+    "tier": 0
+  },
+  "pads": [
+    {
+      "type": "tower",
+      "plot": "ne",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "se",
+      "cost": 50
+    },
+    {
+      "type": "forge",
+      "cost": 80,
+      "produces": {
+        "gear": 6
+      }
+    },
+    {
+      "type": "repair",
+      "cost": 30
+    },
+    {
+      "type": "keep",
+      "cost": 200
+    }
+  ],
+  "waves": [
+    {
+      "at": 5,
+      "path": "ne",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 10,
+          "interval": 0.6
+        }
+      ]
+    },
+    {
+      "at": 28,
+      "path": "e",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 12,
+          "interval": 0.5
+        }
+      ]
+    },
+    {
+      "at": 52,
+      "path": "ne",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 0
+        },
+        {
+          "type": "raider",
+          "count": 10,
+          "interval": 0.5,
+          "delay": 2
+        }
+      ]
+    },
+    {
+      "at": 80,
+      "path": "e",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 0
+        },
+        {
+          "type": "raider",
+          "count": 12,
+          "interval": 0.5,
+          "delay": 2
+        }
+      ]
+    },
+    {
+      "at": 108,
+      "path": "ne",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.35
+        }
+      ]
+    }
+  ],
+  "tutorial": [
+    {
+      "trigger": "start",
+      "text": "Raiders will come down two paths. Watch the arrows."
+    },
+    {
+      "trigger": "wave>=2",
+      "text": "They are at the east fence! A second tower helps.",
+      "pointAt": "pad:tower-se"
+    },
+    {
+      "trigger": "fenceDamaged",
+      "text": "Stand on the repair pad to mend the palisade.",
+      "pointAt": "pad:repair"
+    },
+    {
+      "trigger": "gold>=200",
+      "text": "Upgrade the keep: more health, a bigger stack, new recruits.",
+      "pointAt": "pad:keep"
+    }
+  ]
+}

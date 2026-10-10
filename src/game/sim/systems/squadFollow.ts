@@ -1,10 +1,12 @@
 import { C, DT } from '../components';
 import { KNOCK_DECAY } from '../constants';
-import type { World } from '../world';
+import { place, type World } from '../world';
 
 const INNER_RING_SLOTS = 8;
 const OUTER_RING_SCALE = 1.7;
 const ARRIVE_GAIN = 6;
+/** An archer left this far behind (stuck on a wall or cliff) rejoins the king directly. */
+const REGROUP_DISTANCE = 12;
 
 /** Squad archers steer toward their slot on a loose ring around the king. */
 export function squadFollow(w: World): void {
@@ -25,6 +27,10 @@ export function squadFollow(w: World): void {
     const dy = w.y[hero] + Math.sin(angle) * r - w.y[e];
     const dist = Math.hypot(dx, dy);
 
+    if (dist > REGROUP_DISTANCE) {
+      place(w, e, w.x[hero], w.y[hero]);
+      continue;
+    }
     if (dist > 0.05 && w.stun[e] <= 0) {
       const v = Math.min(speed, dist * ARRIVE_GAIN);
       w.vx[e] = (dx / dist) * v;

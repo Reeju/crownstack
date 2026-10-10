@@ -38,52 +38,60 @@ export function snapshot(page: Page): Promise<Snapshot> {
 }
 
 /**
- * Holds exactly the wanted keys. Wanted keys are pressed again on every call,
- * like keyboard auto-repeat: the game drops held keys when the window blurs,
- * and a one-off keydown would leave the king standing still.
- */
-async function setKeys(page: Page, held: Set<string>, want: Set<string>): Promise<void> {
-  for (const key of KEYS) {
-    if (want.has(key)) await page.keyboard.down(key);
-    if (!want.has(key) && held.has(key)) await page.keyboard.up(key);
-  }
-  held.clear();
-  for (const key of want) held.add(key);
-}
-
-/**
- * Steers the king to a world position with real key presses, like a player
- * would. Returns once he has come to rest within `tolerance` of the target;
- * key releases lag a frame or two, so arrival is re-checked after stopping.
+ * Steers the king to a world position through the keyboard, like a player
+ * would, and resolves once he is at rest within `tolerance` of it.
+ *
+ * The steering loop runs inside the page, once per animation frame, and
+ * dispatches key events there: a loop on the test side overshoots whenever the
+ * machine is busy, because every key release arrives a few frames late.
  */
 export async function walkTo(page: Page, x: number, y: number, tolerance = 0.6): Promise<void> {
-  const held = new Set<string>();
-  const deadline = Date.now() + 60_000;
-  try {
-    while (Date.now() < deadline) {
-      const s = await snapshot(page);
-      const dx = x - s.x;
-      const dy = y - s.y;
-      if (Math.hypot(dx, dy) < tolerance) {
-        await setKeys(page, held, new Set());
-        await page.waitForTimeout(150);
-        const rest = await snapshot(page);
-        if (Math.hypot(x - rest.x, y - rest.y) < tolerance) return;
-        continue;
-      }
-      // World delta -> screen axes (see game/input/index.ts).
-      const sx = dx * Math.cos(YAW) - dy * Math.sin(YAW);
-      const sy = dx * Math.sin(YAW) + dy * Math.cos(YAW);
-      const want = new Set<string>();
-      if (Math.abs(sx) > 0.25) want.add(sx > 0 ? 'KeyD' : 'KeyA');
-      if (Math.abs(sy) > 0.25) want.add(sy > 0 ? 'KeyS' : 'KeyW');
-      await setKeys(page, held, want);
-      await page.waitForTimeout(30);
-    }
-    throw new Error(`walkTo(${x}, ${y}) timed out`);
-  } finally {
-    await setKeys(page, held, new Set());
-  }
+  await page.evaluate(
+    ({ x, y, tolerance, yaw, keys, timeoutMs }) =>
+      new Promise<void>((resolve, reject) => {
+        const held = new Set<string>();
+        const press = (want: Set<string>): void => {
+          for (const code of keys) {
+            // Wanted keys repeat every frame, like auto-repeat; the game drops held keys on blur.
+            if (want.has(code)) window.dispatchEvent(new KeyboardEvent('keydown', { code }));
+            else if (held.has(code)) window.dispatchEvent(new KeyboardEvent('keyup', { code }));
+          }
+          held.clear();
+          want.forEach((code) => held.add(code));
+        };
+        const deadline = performance.now() + timeoutMs;
+        let restFrames = 0;
+
+        const frame = (): void => {
+          const w = window.__crownstack!.currentWorld;
+          const dx = x - w.x[w.hero];
+          const dy = y - w.y[w.hero];
+          const want = new Set<string>();
+          if (Math.hypot(dx, dy) < tolerance) {
+            // Inside the target: let go, then confirm he has stopped there.
+            if (++restFrames > 6) {
+              press(want);
+              return resolve();
+            }
+          } else {
+            restFrames = 0;
+            // World delta -> screen axes (see game/input/index.ts).
+            const sx = dx * Math.cos(yaw) - dy * Math.sin(yaw);
+            const sy = dx * Math.sin(yaw) + dy * Math.cos(yaw);
+            if (Math.abs(sx) > 0.2) want.add(sx > 0 ? 'KeyD' : 'KeyA');
+            if (Math.abs(sy) > 0.2) want.add(sy > 0 ? 'KeyS' : 'KeyW');
+          }
+          press(want);
+          if (w.outcome !== 'playing' || performance.now() > deadline) {
+            press(new Set());
+            return reject(new Error(`walkTo(${x}, ${y}) did not arrive (outcome: ${w.outcome})`));
+          }
+          requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+      }),
+    { x, y, tolerance, yaw: YAW, keys: [...KEYS], timeoutMs: 60_000 },
+  );
 }
 
 export async function startLevelOne(page: Page): Promise<void> {
@@ -97,4 +105,14 @@ export async function startLevelOne(page: Page): Promise<void> {
 /** Smoothed frame rate reported by the game. */
 export function fps(page: Page): Promise<number> {
   return page.evaluate(() => window.__crownstack!.perf.fps);
+}
+
+/** Walks onto a pay pad, looked up by its map id so tests survive layout tuning. */
+export async function walkToPad(page: Page, padId: string): Promise<void> {
+  const pad = await page.evaluate((id) => {
+    const found = window.__crownstack!.currentWorld.pads.find((p) => p.id === id);
+    return found ? { x: found.x, y: found.y } : null;
+  }, padId);
+  if (!pad) throw new Error(`No pad "${padId}" in this level`);
+  await walkTo(page, pad.x, pad.y);
 }

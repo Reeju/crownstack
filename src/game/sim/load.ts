@@ -52,6 +52,7 @@ export function createWorld(cfg: RunConfig): World {
       paying: false,
       dwell: 0,
       drawAcc: 0,
+      latched: false,
     };
   });
 

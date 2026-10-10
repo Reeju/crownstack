@@ -1,0 +1,102 @@
+{
+  "id": 2,
+  "name": "The Forge",
+  "map": "yard-a",
+  "startGold": 80,
+  "parTimeSec": 120,
+  "coinCap": 60,
+  "squad": {
+    "archers": 4,
+    "tier": 0
+  },
+  "pads": [
+    {
+      "type": "tower",
+      "plot": "ne",
+      "cost": 50
+    },
+    {
+      "type": "forge",
+      "cost": 80,
+      "produces": {
+        "gear": 6
+      }
+    }
+  ],
+  "waves": [
+    {
+      "at": 5,
+      "path": "ne",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 8,
+          "interval": 0.6
+        }
+      ]
+    },
+    {
+      "at": 28,
+      "path": "ne",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 10,
+          "interval": 0.5
+        }
+      ]
+    },
+    {
+      "at": 52,
+      "path": "ne",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 0
+        },
+        {
+          "type": "raider",
+          "count": 10,
+          "interval": 0.5,
+          "delay": 2
+        }
+      ]
+    },
+    {
+      "at": 80,
+      "path": "ne",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 12,
+          "interval": 0.4
+        }
+      ]
+    }
+  ],
+  "tutorial": [
+    {
+      "trigger": "start",
+      "text": "Build the tower, then save up for the forge.",
+      "pointAt": "pad:tower-ne"
+    },
+    {
+      "trigger": "padPaid:tower",
+      "text": "Raiders drop coins outside. Slip out through the gate between waves."
+    },
+    {
+      "trigger": "gold>=80",
+      "text": "Stand on the forge pad to craft bows.",
+      "pointAt": "pad:forge"
+    },
+    {
+      "trigger": "gearCarried",
+      "text": "Walk into your archers to hand out the bows."
+    },
+    {
+      "trigger": "wave>=3",
+      "text": "A giant! Keep your squad behind the fence."
+    }
+  ]
+}

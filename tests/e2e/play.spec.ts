@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { fps, snapshot, startLevelOne, walkTo } from './helpers';
+import { fps, snapshot, startLevelOne, walkTo, walkToPad } from './helpers';
 
 test('collects coins and pays the tower pad', async ({ page }) => {
   await startLevelOne(page);
@@ -11,7 +11,7 @@ test('collects coins and pays the tower pad', async ({ page }) => {
   await walkTo(page, 25, 15);
   await expect.poll(async () => (await snapshot(page)).gold).toBeGreaterThan(60);
 
-  await walkTo(page, 30, 13.6);
+  await walkToPad(page, 'tower-ne');
   await expect.poll(async () => (await snapshot(page)).towers, { timeout: 30_000 }).toBe(1);
   console.log(`frame rate: ${(await fps(page)).toFixed(1)} fps`);
   expect((await snapshot(page)).gold).toBeLessThan(60);
@@ -36,7 +36,7 @@ test('wins level 1 with scripted input', async ({ page }) => {
 
   // Grab the loose coins, build the tower, then hold the middle of the yard.
   await walkTo(page, 25, 15);
-  await walkTo(page, 30, 13.6);
+  await walkToPad(page, 'tower-ne');
   await expect.poll(async () => (await snapshot(page)).towers, { timeout: 30_000 }).toBe(1);
   await walkTo(page, 27, 18);
 
@@ -62,4 +62,18 @@ test('falls when the king dies, and Retry replays the same seed', async ({ page 
   await expect(page.getByRole('heading', { name: 'The camp has fallen' })).toBeHidden();
   expect(await page.evaluate(() => window.__crownstack!.currentWorld.cfg.seed)).toBe(seed);
   expect((await snapshot(page)).outcome).toBe('playing');
+});
+
+test('level 2 shows its tutorial and the forge pad', async ({ page }) => {
+  await page.goto('/?debug=1&quality=low');
+  await page.waitForFunction(() => window.__crownstack !== undefined);
+  await page.evaluate(() =>
+    (window as unknown as { __crownstackStart: (id: number) => void }).__crownstackStart(2),
+  );
+  await expect(page.getByText('The Forge', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Build the tower/)).toBeVisible();
+  const pads = await page.evaluate(() =>
+    window.__crownstack!.currentWorld.pads.map((p) => `${p.type}:${p.cost}`),
+  );
+  expect(pads).toEqual(['tower:50', 'forge:80']);
 });

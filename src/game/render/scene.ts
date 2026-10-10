@@ -32,6 +32,7 @@ import {
   chestGeometry,
   coinGeometry,
   gearGeometry,
+  pointerGeometry,
   towerGeometry,
 } from './meshes/props';
 import { PadView } from './padView';
@@ -44,6 +45,7 @@ const UNIT_SCALE = 1.5;
 const GROUND_COIN_SCALE = 1.3;
 const WALK_BOB_HEIGHT = 0.07;
 const WALK_BOB_RATE = 14;
+const CHEER_JUMP_HEIGHT = 0.55;
 const PAY_STREAM_COINS = 5;
 const PAY_STREAM_ARC = 1.6;
 const ARROW_HEIGHT = 1.2;
@@ -69,12 +71,17 @@ export class GameRenderer {
   readonly iso = new IsoCamera();
   /** When true, camera shake and bobbing are suppressed (reduced motion). */
   reducedMotion = false;
+  /** Index of the pad the tutorial is pointing at, or -1. */
+  pointAtPad = -1;
 
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly material = createModelMaterial();
   private readonly king: Mesh;
   private readonly squadRing: Mesh;
+  private readonly pointer: Mesh;
+  /** True while the win celebration plays: player units jump for joy. */
+  private celebrating = false;
   private readonly archers: InstancedPool[];
   private readonly towers: InstancedPool;
   private readonly groundCoins: InstancedPool;
@@ -116,7 +123,9 @@ export class GameRenderer {
       new MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 }),
     );
     this.squadRing.rotation.x = -Math.PI / 2;
-    this.scene.add(this.king, this.squadRing);
+    this.pointer = new Mesh(pointerGeometry(), this.material);
+    this.pointer.visible = false;
+    this.scene.add(this.king, this.squadRing, this.pointer);
 
     this.archers = ARCHER_TIER_COLORS.map(
       (c) => new InstancedPool(archerGeometry(c), this.material, 96),
@@ -180,7 +189,8 @@ export class GameRenderer {
     const hx = lerp(w.px[hero], w.x[hero], alpha);
     const hz = lerp(w.py[hero], w.y[hero], alpha);
     const heroAlive = w.hp[hero] > 0;
-    const heroBob = this.bob(hero, w.vx[hero], w.vy[hero]);
+    this.celebrating = w.celebrate >= 0 || w.outcome === 'won';
+    const heroBob = this.bob(hero, w.vx[hero], w.vy[hero], true);
 
     const blinking = w.king.iframes > 0 && Math.floor(this.clock * IFRAME_BLINK_HZ) % 2 === 0;
     this.king.visible = heroAlive && !blinking;
@@ -204,7 +214,13 @@ export class GameRenderer {
       const z = lerp(w.py[e], w.y[e], alpha);
 
       if (kind === Kind.Archer) {
-        this.archers[w.def[e]].add(x, this.bob(e, w.vx[e], w.vy[e]), z, -w.facing[e], UNIT_SCALE);
+        this.archers[w.def[e]].add(
+          x,
+          this.bob(e, w.vx[e], w.vy[e], true),
+          z,
+          -w.facing[e],
+          UNIT_SCALE,
+        );
         this.bar(x, 1.9, z, 0.9, w.hp[e] / w.maxHp[e], BAR_PLAYER, false);
       } else if (kind === Kind.Enemy) {
         const def = w.enemyDefs[w.def[e]];
@@ -276,6 +292,14 @@ export class GameRenderer {
       this.drawPayStream(w);
     }
 
+    const pad = this.pointAtPad >= 0 ? w.pads[this.pointAtPad] : null;
+    this.pointer.visible = pad !== null;
+    if (pad) {
+      const hop = this.reducedMotion ? 0 : Math.abs(Math.sin(this.clock * 4)) * 0.5;
+      this.pointer.position.set(pad.x, 1.6 + hop, pad.y);
+      this.pointer.rotation.y = this.clock * 2;
+    }
+
     for (const pool of this.pools) pool.end();
     this.barBack.end();
     this.barFill.end();
@@ -316,6 +340,11 @@ export class GameRenderer {
       case Ev.GearDelivered:
         this.particles.burst(x, 1.2, z, 12, PALETTE.gearBlue, 3);
         break;
+      case Ev.WavesCleared:
+        // Reward burst: a fountain of gold over the king.
+        this.particles.burst(x, 1.5, z, 90, PALETTE.gold, 7, 0.24);
+        this.particles.burst(x, 1.5, z, 40, PALETTE.white, 5, 0.16);
+        break;
       case Ev.ChestOpened:
         this.particles.burst(x, 0.6, z, 20, PALETTE.gold, 4.5, 0.2);
         break;
@@ -336,6 +365,7 @@ export class GameRenderer {
     this.barFill.dispose();
     this.particles.dispose();
     this.king.geometry.dispose();
+    this.pointer.geometry.dispose();
     this.squadRing.geometry.dispose();
     (this.squadRing.material as MeshBasicMaterial).dispose();
     this.material.dispose();
@@ -378,8 +408,12 @@ export class GameRenderer {
     this.barFill.add(lx, y, lz, width * Math.max(ratio, 0), BAR_HEIGHT * 0.7, hex);
   }
 
-  private bob(e: number, vx: number, vy: number): number {
-    if (this.reducedMotion || vx * vx + vy * vy < 0.25) return 0;
+  /** Vertical offset for a unit: a walk bob, or a jump for player units during the celebration. */
+  private bob(e: number, vx: number, vy: number, cheers = false): number {
+    if (this.reducedMotion) return 0;
+    if (cheers && this.celebrating)
+      return Math.abs(Math.sin(this.clock * 9 + e)) * CHEER_JUMP_HEIGHT;
+    if (vx * vx + vy * vy < 0.25) return 0;
     return Math.abs(Math.sin(this.clock * WALK_BOB_RATE + e)) * WALK_BOB_HEIGHT;
   }
 

@@ -52,3 +52,18 @@ describe('hero movement', () => {
     }
   });
 });
+
+describe('squad', () => {
+  it('follows the king out through the gate and back without being stranded', () => {
+    const w = makeWorld(quietLevel());
+    moveHero(w, 29.5, 12);
+    run(w, 1.5, 0, -1); // out of the gate
+    run(w, 2, 1, 0); // along the outside of the north fence
+    moveHero(w, 22, 18); // back in the yard
+    run(w, 4);
+    for (let e = 0; e < w.highWater; e++) {
+      if (w.kind[e] !== Kind.Archer) continue;
+      expect(Math.hypot(w.x[e] - w.x[w.hero], w.y[e] - w.y[w.hero])).toBeLessThan(2);
+    }
+  });
+});

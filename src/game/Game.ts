@@ -11,6 +11,7 @@ import { runSeed } from './sim/rng';
 import { runResult, type RunResult } from './sim/score';
 import { step } from './sim/step';
 import { NO_META, type MetaBonuses, type World } from './sim/world';
+import { Tutorial } from './tutorial';
 
 /** Values the HUD shows; pushed to the UI only when one of them changes. */
 export interface HudState {
@@ -25,6 +26,8 @@ export interface HudState {
   bannerWave: number;
   /** Screen-space direction (degrees, 0 = right, clockwise) toward the announced wave's spawn. */
   bannerAngle: number;
+  /** Tutorial hint text, or '' when none is showing. */
+  hint: string;
 }
 
 export interface GameCallbacks {
@@ -68,6 +71,7 @@ export class Game {
   private bannerUntil = 0;
   private bannerSpawn = { x: 0, y: 0 };
   private readonly screenPoint = { x: 0, y: 0 };
+  private tutorial: Tutorial | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -110,6 +114,7 @@ export class Game {
     this.renderer.loadLevel(this.world);
     this.hud = emptyHud();
     this.bannerWave = 0;
+    this.tutorial = new Tutorial(this.world.cfg.level);
     this.loop.paused = false;
   }
 
@@ -194,6 +199,9 @@ export class Game {
       const dy = this.screenPoint.y - this.canvas.clientHeight / 2;
       bannerAngle = Math.round((Math.atan2(dy, dx) * 180) / Math.PI);
     }
+    // While paused the last hint stays up; otherwise the tutorial decides.
+    const hint = this.loop.paused ? null : (this.tutorial?.update(w) ?? null);
+    this.renderer.pointAtPad = hint ? hint.pad : -1;
     const next: HudState = {
       levelName: w.cfg.level.name,
       gold: totalGold(w),
@@ -202,6 +210,7 @@ export class Game {
       keepHp: Math.ceil((w.hp[w.keep] / w.maxHp[w.keep]) * 100),
       bannerWave,
       bannerAngle,
+      hint: this.loop.paused ? prev.hint : (hint?.text ?? ''),
     };
     for (const key of Object.keys(next) as (keyof HudState)[]) {
       if (next[key] !== prev[key]) {
@@ -226,5 +235,6 @@ function emptyHud(): HudState {
     keepHp: 100,
     bannerWave: 0,
     bannerAngle: 0,
+    hint: '',
   };
 }

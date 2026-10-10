@@ -1,6 +1,7 @@
 // Dev tool: plays a level with scripted waypoints in headless Chromium and
 // saves screenshots. Usage:
 //   node scripts/capture.mjs <outDir> <level> "<x,y,holdSec;...>" [shotEverySec] [width] [height]
+//   VIDEO=1 records a .webm as well.
 // Needs the dev server (pnpm dev --port 5317) or set BASE_URL.
 import { mkdirSync } from 'node:fs';
 
@@ -14,7 +15,12 @@ const KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD'];
 
 mkdirSync(outDir, { recursive: true });
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: Number(width), height: Number(height) } });
+const viewport = { width: Number(width), height: Number(height) };
+// VIDEO=1 also records a .webm of the whole run into outDir.
+const page = await browser.newPage({
+  viewport,
+  recordVideo: process.env.VIDEO ? { dir: outDir, size: viewport } : undefined,
+});
 page.on('pageerror', (e) => console.error('PAGE ERROR', e.message));
 page.on('console', (m) => m.type() === 'error' && console.error('CONSOLE', m.text()));
 await page.goto(`${BASE_URL}/?debug=1`);
@@ -91,4 +97,5 @@ while ((await tick()).outcome === 'playing') await page.waitForTimeout(200);
 await page.waitForTimeout(600);
 await page.screenshot({ path: `${outDir}/final.jpg`, quality: 70, type: 'jpeg' });
 console.log('FINAL', JSON.stringify(await snap()));
+await page.close();
 await browser.close();

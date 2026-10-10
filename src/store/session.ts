@@ -37,6 +37,7 @@ const EMPTY_HUD: HudState = {
   keepHp: 100,
   bannerWave: 0,
   bannerAngle: 0,
+  hint: '',
 };
 
 /** Transient UI state for the current browser session (never persisted). */
