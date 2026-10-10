@@ -104,6 +104,12 @@ export class Game {
     return this.input.keyboard.used;
   }
 
+  /** Applies the player's accessibility settings to the renderer. */
+  applySettings(settings: { reducedMotion: boolean; colorBlind: boolean }): void {
+    this.renderer.reducedMotion = settings.reducedMotion;
+    this.renderer.colorBlind = settings.colorBlind;
+  }
+
   /** Read-only view of the current world, for tests and debug tooling. */
   get currentWorld(): World {
     return this.world;

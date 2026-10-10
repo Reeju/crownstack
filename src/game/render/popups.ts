@@ -4,11 +4,12 @@ import {
   InstancedBufferAttribute,
   InstancedMesh,
   PlaneGeometry,
-  ShaderMaterial,
   SRGBColorSpace,
+  type ShaderMaterial,
 } from 'three';
 
 import type { UnitsDef } from '../../content/schema';
+import { createAtlasMaterial } from './atlas';
 import { writeBillboard, type BillboardBasis } from './billboards';
 
 const CAPACITY = 64;
@@ -20,29 +21,6 @@ const LIFE_SEC = 0.7;
 const RISE = 1.4;
 const WIDTH = 1.5;
 const FONT = '700 46px "Fredoka Variable", ui-rounded, system-ui, sans-serif';
-
-const VERTEX = /* glsl */ `
-  attribute vec4 uvRect;
-  attribute float alpha;
-  varying vec2 vUv;
-  varying float vAlpha;
-  void main() {
-    vUv = uv * uvRect.zw + uvRect.xy;
-    vAlpha = alpha;
-    gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
-  }
-`;
-
-const FRAGMENT = /* glsl */ `
-  uniform sampler2D map;
-  varying vec2 vUv;
-  varying float vAlpha;
-  void main() {
-    vec4 texel = texture2D(map, vUv);
-    gl_FragColor = vec4(texel.rgb, texel.a * vAlpha);
-    #include <colorspace_fragment>
-  }
-`;
 
 /**
  * Floating damage numbers: one instanced draw call of billboards that sample
@@ -92,14 +70,7 @@ export class Popups {
     this.alpha.setUsage(DynamicDrawUsage);
     geometry.setAttribute('uvRect', this.uvRect);
     geometry.setAttribute('alpha', this.alpha);
-    const material = new ShaderMaterial({
-      uniforms: { map: { value: this.texture } },
-      vertexShader: VERTEX,
-      fragmentShader: FRAGMENT,
-      transparent: true,
-      depthTest: false,
-    });
-    this.mesh = new InstancedMesh(geometry, material, CAPACITY);
+    this.mesh = new InstancedMesh(geometry, createAtlasMaterial(this.texture, false), CAPACITY);
     this.mesh.instanceMatrix.setUsage(DynamicDrawUsage);
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 11;

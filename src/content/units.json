@@ -17,17 +17,47 @@
     "arrowSpeed": 18,
     "ringRadius": 1.5,
     "tiers": [
-      { "hp": 40, "damage": 20, "attackInterval": 0.8, "range": 7 },
-      { "hp": 70, "damage": 30, "attackInterval": 0.7, "range": 8 },
-      { "hp": 110, "damage": 45, "attackInterval": 0.6, "range": 9 }
+      {
+        "hp": 40,
+        "damage": 20,
+        "attackInterval": 0.8,
+        "range": 7
+      },
+      {
+        "hp": 70,
+        "damage": 30,
+        "attackInterval": 0.7,
+        "range": 8
+      },
+      {
+        "hp": 110,
+        "damage": 45,
+        "attackInterval": 0.6,
+        "range": 9
+      }
     ]
   },
   "tower": {
     "radius": 0.6,
     "tiers": [
-      { "hp": 60, "damage": 20, "attackInterval": 0.8, "range": 9 },
-      { "hp": 100, "damage": 30, "attackInterval": 0.8, "range": 9 },
-      { "hp": 160, "damage": 45, "attackInterval": 0.8, "range": 9 }
+      {
+        "hp": 60,
+        "damage": 20,
+        "attackInterval": 0.8,
+        "range": 9
+      },
+      {
+        "hp": 100,
+        "damage": 30,
+        "attackInterval": 0.8,
+        "range": 9
+      },
+      {
+        "hp": 160,
+        "damage": 45,
+        "attackInterval": 0.8,
+        "range": 9
+      }
     ]
   },
   "enemies": {
@@ -76,7 +106,11 @@
       "scoreBonus": 500,
       "knockback": 2,
       "boss": true,
-      "slam": { "every": 8, "radius": 3, "damage": 100 }
+      "slam": {
+        "every": 8,
+        "radius": 3,
+        "damage": 100
+      }
     },
     "chieftain-2": {
       "model": "chieftain",
@@ -91,7 +125,11 @@
       "scoreBonus": 500,
       "knockback": 2,
       "boss": true,
-      "slam": { "every": 8, "radius": 3, "damage": 100 }
+      "slam": {
+        "every": 8,
+        "radius": 3,
+        "damage": 100
+      }
     },
     "chieftain-3": {
       "model": "chieftain",
@@ -106,12 +144,26 @@
       "scoreBonus": 500,
       "knockback": 2,
       "boss": true,
-      "slam": { "every": 8, "radius": 3, "damage": 100 },
-      "summon": { "type": "raider", "count": 4, "every": 10 }
+      "slam": {
+        "every": 8,
+        "radius": 3,
+        "damage": 100
+      },
+      "summon": {
+        "type": "raider",
+        "count": 4,
+        "every": 10
+      }
     }
   },
-  "fence": { "hp": 150 },
-  "keep": { "hp": 1000, "hpPerTier": 250, "archersPerTier": 2 },
+  "fence": {
+    "hp": 150
+  },
+  "keep": {
+    "hp": 1000,
+    "hpPerTier": 250,
+    "archersPerTier": 2
+  },
   "economy": {
     "coinValue": 10,
     "coinLifetimeSec": 20,
@@ -121,11 +173,21 @@
     "gearLifetimeSec": 30,
     "coinCapPerKeepTier": 10,
     "maxCoinCap": 120,
-    "maxKeepTier": 3
+    "maxKeepTier": 3,
+    "gateCloseSec": 20
   },
   "difficulty": {
-    "easy": { "enemyHpMult": 0.7, "coinCapDelta": 0 },
-    "normal": { "enemyHpMult": 1, "coinCapDelta": 0 },
-    "hard": { "enemyHpMult": 1.4, "coinCapDelta": -20 }
+    "easy": {
+      "enemyHpMult": 0.7,
+      "coinCapDelta": 0
+    },
+    "normal": {
+      "enemyHpMult": 1,
+      "coinCapDelta": 0
+    },
+    "hard": {
+      "enemyHpMult": 1.4,
+      "coinCapDelta": -20
+    }
   }
 }

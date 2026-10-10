@@ -1,0 +1,47 @@
+[
+  {
+    "id": "coinCap",
+    "name": "Deeper Pockets",
+    "description": "+10 coin carry cap",
+    "ranks": 3,
+    "cost": 2,
+    "bonus": "coinCap",
+    "perRank": 10
+  },
+  {
+    "id": "kingHp",
+    "name": "Royal Mail",
+    "description": "+50 king HP",
+    "ranks": 3,
+    "cost": 2,
+    "bonus": "kingHp",
+    "perRank": 50
+  },
+  {
+    "id": "archers",
+    "name": "Conscription",
+    "description": "+1 starting archer",
+    "ranks": 3,
+    "cost": 3,
+    "bonus": "extraArchers",
+    "perRank": 1
+  },
+  {
+    "id": "towerCost",
+    "name": "Master Builders",
+    "description": "Towers cost 10% less",
+    "ranks": 2,
+    "cost": 3,
+    "bonus": "towerCostMult",
+    "perRank": -0.1
+  },
+  {
+    "id": "magnet",
+    "name": "Lodestone Crown",
+    "description": "+0.5 coin magnet radius",
+    "ranks": 2,
+    "cost": 2,
+    "bonus": "magnetRadius",
+    "perRank": 0.5
+  }
+]

@@ -1,0 +1,260 @@
+{
+  "id": 9,
+  "name": "Twin Chieftains",
+  "map": "river-c",
+  "startGold": 200,
+  "parTimeSec": 270,
+  "coinCap": 60,
+  "dash": true,
+  "maxTowerTier": 2,
+  "maxArcherTier": 2,
+  "squad": {
+    "archers": 7,
+    "tier": 0
+  },
+  "pads": [
+    {
+      "type": "tower",
+      "plot": "w-n",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "w-s",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "o-nw",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "o-sw",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "o-ne",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "o-se",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "k-n",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "k-s",
+      "cost": 50
+    },
+    {
+      "type": "forge",
+      "cost": 80,
+      "produces": {
+        "gear": 6
+      }
+    },
+    {
+      "type": "repair",
+      "cost": 30
+    },
+    {
+      "type": "keep",
+      "cost": 200
+    },
+    {
+      "type": "gate",
+      "cost": 40
+    }
+  ],
+  "waves": [
+    {
+      "at": 6,
+      "path": "e",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 12,
+          "interval": 0.6
+        }
+      ]
+    },
+    {
+      "at": 28,
+      "path": "n",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 3,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 54,
+      "path": "s",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 3,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 82,
+      "path": "e",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 3,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 110,
+      "path": "n",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 3,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 140,
+      "path": "s",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 4,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 170,
+      "path": "e",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 4,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 200,
+      "path": "n",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 18,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 4,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 228,
+      "path": "n",
+      "groups": [
+        {
+          "type": "chieftain-2",
+          "count": 1,
+          "interval": 0.0
+        }
+      ]
+    },
+    {
+      "at": 228,
+      "path": "s",
+      "groups": [
+        {
+          "type": "chieftain-2",
+          "count": 1,
+          "interval": 0.0
+        }
+      ]
+    }
+  ],
+  "tutorial": [
+    {
+      "trigger": "start",
+      "text": "Two chieftains march tonight, from north and south."
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { BUILDING_HALF } from './constants';
-import { baseCoinCap, repeatCost } from './economy';
+import { baseCoinCap, padCost } from './economy';
 import { buildPath } from './pathing';
 import { spawnArcher, spawnChest, spawnCoin, spawnFence, spawnKeep, spawnKing } from './spawn';
 import { compileWaves } from './waves';
@@ -37,16 +37,17 @@ export function createWorld(cfg: RunConfig): World {
   const pads: PadState[] = level.pads.map((lp) => {
     const mp = map.pads.find((m) => m.type === lp.type && m.plot === lp.plot);
     if (!mp) throw new Error(`Level ${level.id}: no ${lp.type} pad in map ${map.id}`);
-    const base = lp.type === 'tower' ? repeatCost(lp.cost * meta.towerCostMult, 0, 1) : lp.cost;
+    const discount = lp.type === 'tower' ? meta.towerCostMult : 1;
     return {
       id: mp.id,
       type: lp.type,
       x: mp.pos[0],
       y: mp.pos[1],
       plot: mp.plot === undefined ? -1 : (plotIndex.get(mp.plot) ?? -1),
-      baseCost: base,
+      baseCost: lp.cost,
+      discount,
       gear: lp.produces?.gear ?? 0,
-      cost: base,
+      cost: padCost(lp.cost, 0, units.economy.repeatCostMult, discount),
       paid: 0,
       active: true,
       paying: false,
@@ -64,13 +65,20 @@ export function createWorld(cfg: RunConfig): World {
     plots,
     waves: compileWaves(level, pathIndex, enemyIndex),
     fenceCount: map.blockers.fences.length,
+    gateCount: map.blockers.gates.length,
   });
 
   map.blockers.fences.forEach((f, i) => {
-    w.fences[i] = spawnFence(w, f.a[0], f.a[1], f.b[0], f.b[1]);
+    w.fences[i] = w.barriers[i] = spawnFence(w, f.a[0], f.a[1], f.b[0], f.b[1]);
   });
+  map.blockers.gates.forEach((g, i) => {
+    const gate = spawnFence(w, g.a[0], g.a[1], g.b[0], g.b[1]);
+    w.hp[gate] = 0; // gates start open
+    w.gates[i] = w.barriers[map.blockers.fences.length + i] = gate;
+  });
+  const barrierIds = [...map.blockers.fences, ...map.blockers.gates].map((b) => b.id);
   map.paths.forEach((p, i) => {
-    w.pathTargets[i] = w.fences[map.blockers.fences.findIndex((f) => f.id === p.targetFence)];
+    w.pathTargets[i] = w.barriers[barrierIds.indexOf(p.targetFence)];
   });
   w.keep = spawnKeep(w, map.keep.x, map.keep.y, map.keep.w, map.keep.h);
   w.hero = spawnKing(w, map.heroStart[0], map.heroStart[1]);

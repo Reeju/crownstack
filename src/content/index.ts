@@ -3,16 +3,20 @@ import {
   levelSchema,
   mapSchema,
   unitsSchema,
+  upgradesSchema,
   type LevelDef,
   type MapDef,
   type UnitsDef,
+  type UpgradeDef,
 } from './schema';
 import unitsJson from './units.json';
+import upgradesJson from './upgrades.json';
 
 const levelFiles = import.meta.glob('./levels/*.json', { eager: true, import: 'default' });
 const mapFiles = import.meta.glob('./maps/*.json', { eager: true, import: 'default' });
 
 export const units: UnitsDef = unitsSchema.parse(unitsJson);
+export const upgrades: readonly UpgradeDef[] = upgradesSchema.parse(upgradesJson);
 
 export const maps: ReadonlyMap<string, MapDef> = new Map(
   Object.values(mapFiles).map((raw) => {

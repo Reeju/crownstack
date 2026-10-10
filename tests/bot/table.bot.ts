@@ -1,6 +1,7 @@
 // Prints the bot results table used for level tuning:
-//   pnpm bot                 every level
+//   pnpm bot                 every level, 3 seeds each
 //   BOT_LEVELS=2,3 pnpm bot  only those levels
+//   BOT_SEEDS=5 pnpm bot     more seeds per row
 import { it } from 'vitest';
 
 import { levels } from '../../src/content';
@@ -10,8 +11,10 @@ import { makeWorld } from '../unit/helpers/world';
 import { playBot, type BotStyle } from './bot';
 
 const only = (process.env.BOT_LEVELS ?? '').split(',').map(Number).filter(Boolean);
+const seeds = Number(process.env.BOT_SEEDS ?? 3);
+const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
 
-it('prints the bot results table', { timeout: 600_000 }, () => {
+it('prints the bot results table', { timeout: 1_800_000 }, () => {
   const rows: Record<string, string | number>[] = [];
   for (const level of levels) {
     if (only.length > 0 && !only.includes(level.id)) continue;
@@ -20,19 +23,20 @@ it('prints the bot results table', { timeout: 600_000 }, () => {
       ['naive', 'normal'],
       ['naive', 'hard'],
     ] as [BotStyle, Difficulty][]) {
-      const r = playBot(makeWorld(level, { seed: runSeed(level.id, 1), difficulty }), style);
+      const runs = Array.from({ length: seeds }, (_, attempt) =>
+        playBot(makeWorld(level, { seed: runSeed(level.id, attempt + 1), difficulty }), style),
+      );
+      const wins = runs.filter((r) => r.outcome === 'won');
       rows.push({
         level: `${level.id} ${level.name}`,
         bot: style,
         difficulty,
-        outcome: r.outcome,
-        time: r.timeSec,
+        wins: `${wins.length}/${seeds}`,
+        'win time': wins.length > 0 ? median(wins.map((r) => r.timeSec)) : '-',
         'par+50%': Math.round(level.parTimeSec * 1.5),
-        kills: r.kills,
-        'keep%': r.keepHp,
-        king: r.kingHp,
-        archers: r.archers,
-        gold: r.gold,
+        'keep%': median(runs.map((r) => r.keepHp)),
+        archers: median(runs.map((r) => r.archers)),
+        'peak entities': Math.max(...runs.map((r) => r.peakEntities)),
       });
     }
   }

@@ -7,17 +7,23 @@ import type { World } from '../../src/game/sim/world';
  * Heuristic bots used to tune levels (SPEC §9 Phase 4).
  *
  * - `naive`: the spec's "nearest coin, cheapest pad" player. It never retreats.
- * - `careful`: the same goals, but it leaves coins that sit next to enemies,
- *   falls back to the yard when hurt and waits near home between waves. It
- *   stands in for a competent human when checking that a level is winnable.
+ * - `careful`: the same goals, but it puts the squad between the raiders and
+ *   the keep when they get close, leaves coins that sit next to enemies and
+ *   falls back when hurt. It stands in for a competent human when checking
+ *   that a level is winnable.
  */
 export type BotStyle = 'naive' | 'careful';
 
 const CELL = 0.5;
 const CLEARANCE = 0.55;
 const DECIDE_EVERY = 12;
-const DANGER_RADIUS = 3.5;
+const DANGER_RADIUS = 4.5;
 const RETREAT_HP = 0.5;
+/** The careful bot defends once the nearest raider is this close to the keep or the king. */
+const GUARD_KEEP_RADIUS = 15;
+const GUARD_KING_RADIUS = 8;
+/** It stands this far from the threat, on the keep's side: inside bow range, outside melee. */
+const GUARD_DISTANCE = 5.5;
 
 /** Breadth-first navigation over a coarse grid of the map's standing blockers. */
 class Navigator {
@@ -105,10 +111,11 @@ class Navigator {
       for (let cy = y0; cy <= y1; cy++)
         for (let cx = x0; cx <= x1; cx++) this.blocked[cy * this.cols + cx] = 1;
     };
-    for (let i = 0; i < w.fences.length; i++) {
-      const f = w.fences[i];
+    for (let i = 0; i < w.barriers.length; i++) {
+      const f = w.barriers[i];
       if (w.hp[f] > 0) box(w.x[f], w.y[f], w.hw[f], w.hh[f]);
     }
+    for (const plot of w.plots) if (plot.tier > 0) box(plot.x, plot.y, 0.3, 0.3);
     if (w.hp[w.keep] > 0) box(w.x[w.keep], w.y[w.keep], w.hw[w.keep], w.hh[w.keep]);
     for (const wall of w.walls) box(wall.x, wall.y, wall.hw, wall.hh);
     for (const rock of w.rocks) box(rock.x, rock.y, rock.r * 0.7, rock.r * 0.7);
@@ -154,6 +161,31 @@ export class Bot {
 
     if (careful && w.hp[hero] / w.maxHp[hero] < RETREAT_HP) return this.setGoal(homeX, homeY);
 
+    // The raider closest to the keep is the threat to answer.
+    const keepX = w.x[w.keep];
+    const keepY = w.y[w.keep];
+    let threat = -1;
+    let threatDist = Infinity;
+    for (let e = 0; e < w.highWater; e++) {
+      if (w.kind[e] !== Kind.Enemy) continue;
+      const dist = Math.hypot(w.x[e] - keepX, w.y[e] - keepY);
+      if (dist < threatDist) {
+        threatDist = dist;
+        threat = e;
+      }
+    }
+    const guard = (): void => {
+      const dx = keepX - w.x[threat];
+      const dy = keepY - w.y[threat];
+      const d = Math.hypot(dx, dy) || 1;
+      const reach = Math.min(GUARD_DISTANCE + w.radius[threat], d * 0.8);
+      this.setGoal(w.x[threat] + (dx / d) * reach, w.y[threat] + (dy / d) * reach);
+    };
+    if (careful && threat >= 0) {
+      const toKing = Math.hypot(w.x[threat] - w.x[hero], w.y[threat] - w.y[hero]);
+      if (threatDist < GUARD_KEEP_RADIUS || toKing < GUARD_KING_RADIUS) return guard();
+    }
+
     // Cheapest pad that can be finished with the gold in hand.
     let pad = null;
     for (const p of w.pads) {
@@ -179,6 +211,7 @@ export class Bot {
       }
     }
     if (best >= 0) return this.setGoal(w.x[best], w.y[best]);
+    if (careful && threat >= 0) return guard();
     this.setGoal(homeX, homeY);
   }
 
@@ -205,14 +238,18 @@ export interface BotRun {
   kingHp: number;
   archers: number;
   gold: number;
+  /** Most entity slots in use at once, against the 1024-slot pool. */
+  peakEntities: number;
 }
 
 /** Plays a world to its end (or `maxSec`) with the given bot style. */
 export function playBot(w: World, style: BotStyle, maxSec = 900): BotRun {
   const bot = new Bot(w, style);
+  let peakEntities = 0;
   for (let i = 0; i < maxSec * 60 && w.outcome === 'playing'; i++) {
     bot.act();
     step(w);
+    peakEntities = Math.max(peakEntities, w.highWater - w.freeCount);
   }
   return {
     outcome: w.outcome,
@@ -222,5 +259,6 @@ export function playBot(w: World, style: BotStyle, maxSec = 900): BotRun {
     kingHp: Math.round(w.hp[w.hero]),
     archers: w.archersAlive,
     gold: w.eco.goldEarned,
+    peakEntities,
   };
 }

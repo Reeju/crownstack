@@ -15,7 +15,8 @@
     "icons": "node scripts/gen-icons.mjs",
     "prepare": "husky",
     "capture": "node scripts/capture.mjs",
-    "bot": "vitest run --config vitest.bot.config.ts --disable-console-intercept"
+    "bot": "vitest run --config vitest.bot.config.ts --disable-console-intercept",
+    "maps": "node scripts/gen-maps.mjs && prettier --write src/content/maps"
   },
   "license": "MIT",
   "devEngines": {

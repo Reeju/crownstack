@@ -30,18 +30,49 @@ function runUntil(w: World, maxSec: number, done: () => boolean): void {
 }
 
 describe('enemies', () => {
-  it('follow their path to the fence and break it', () => {
+  it('follow their path, break the fence across it and carry on to the keep', () => {
     const w = makeWorld(quietLevel());
     dismissSquad(w);
     moveHero(w, 13, 25); // far from the east fence
     const raider = spawnEnemy(w, def(w, 'raider'), 0);
     const fence = w.pathTargets[0];
 
-    runUntil(w, 40, () => w.state[raider] === EnemyState.Siege);
+    // It stops at the fence its path crosses and hacks it down...
+    runUntil(w, 40, () => w.hp[fence] < w.maxHp[fence]);
     expect(Math.abs(w.x[raider] - 34)).toBeLessThan(2);
-
     runUntil(w, 30, () => w.hp[fence] <= 0);
     expect(w.kind[fence]).toBe(Kind.Fence); // stays allocated so it can be repaired
+
+    // ...then walks the rest of the path and starts on the keep.
+    runUntil(w, 30, () => w.state[raider] === EnemyState.Siege);
+    runUntil(w, 10, () => w.hp[w.keep] < w.maxHp[w.keep]);
+  });
+
+  it('are held by a closed gate and walk through once it opens', () => {
+    const level = { ...quietLevel(), map: 'river-c', pads: [{ type: 'gate' as const, cost: 40 }] };
+    const w = makeWorld({
+      ...level,
+      waves: [{ at: 9999, path: 's', groups: quietLevel().waves[0].groups }],
+    });
+    dismissSquad(w);
+    const gate = w.gates[0];
+    expect(w.hp[gate]).toBe(0); // gates start open
+
+    const pad = w.pads[0];
+    moveHero(w, pad.x, pad.y);
+    run(w, 2);
+    expect(w.hp[gate]).toBe(w.maxHp[gate]);
+    expect(w.eco.gateTimer).toBeGreaterThan(17);
+
+    // The king cannot cross a closed gate either.
+    moveHero(w, 26, 20);
+    run(w, 1.5, 1, 0);
+    expect(w.x[w.hero]).toBeLessThan(28);
+
+    run(w, 20);
+    expect(w.hp[gate]).toBe(0);
+    run(w, 1.5, 1, 0);
+    expect(w.x[w.hero]).toBeGreaterThan(29);
   });
 
   it('march on the keep once the fence is down and lose the level', () => {

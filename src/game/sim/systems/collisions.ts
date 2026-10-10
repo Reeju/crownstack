@@ -54,8 +54,8 @@ export function collisions(w: World): void {
 
     // Squad archers hop their own palisade: they steer straight for their slot
     // with no pathfinding, and would otherwise be stranded when the king uses the gate.
-    for (let i = 0; kind !== Kind.Archer && i < w.fences.length; i++) {
-      const f = w.fences[i];
+    for (let i = 0; kind !== Kind.Archer && i < w.barriers.length; i++) {
+      const f = w.barriers[i];
       if (w.hp[f] <= 0) continue;
       if (resolveBox(w, e, w.x[f], w.y[f], w.hw[f], w.hh[f]) && isEnemy) w.slot[e] = f;
     }

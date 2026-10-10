@@ -1,21 +1,24 @@
 import {
   CanvasTexture,
-  DoubleSide,
-  Group,
-  Mesh,
-  MeshBasicMaterial,
+  Euler,
+  InstancedBufferAttribute,
+  InstancedMesh,
+  Matrix4,
   PlaneGeometry,
-  RingGeometry,
   SRGBColorSpace,
+  type ShaderMaterial,
 } from 'three';
 
 import type { PadType } from '../../content/schema';
 import { PAD_RADIUS } from '../sim/constants';
 import { padUsable } from '../sim/systems/pads';
 import type { World } from '../sim/world';
+import { cellUv, createAtlasMaterial } from './atlas';
 
-const TEXTURE_SIZE = 160;
-const RING_STEPS = 32;
+const CELL = 128;
+const RING_RADIUS_PX = 57;
+/** World size of a pad quad, chosen so the ring drawn in its cell sits just outside PAD_RADIUS. */
+const QUAD_SIZE = (PAD_RADIUS * 2.1 * CELL) / (RING_RADIUS_PX * 2);
 const FONT = '"Fredoka Variable", ui-rounded, system-ui, sans-serif';
 const LABELS: Record<PadType, string> = {
   tower: 'TOWER',
@@ -26,132 +29,126 @@ const LABELS: Record<PadType, string> = {
   gate: 'GATE',
 };
 
-interface PadVisual {
-  plate: Mesh;
-  ring: Mesh;
-  material: MeshBasicMaterial;
-  ringMaterial: MeshBasicMaterial;
-  texture: CanvasTexture;
-  ctx: CanvasRenderingContext2D;
-  shownRemaining: number;
-  shownStep: number;
-}
-
 /**
- * Pay pads: a green plate lying on the ground showing what it buys and the
- * gold still owed, plus a progress ring that fills as coins arrive.
+ * Pay pads: plates lying on the ground showing what they buy, the gold still
+ * owed and a progress ring. All pads share one canvas atlas and one instanced
+ * draw call; a pad's cell is redrawn only when its numbers change.
  */
 export class PadView {
-  readonly group = new Group();
-  private readonly visuals: PadVisual[] = [];
-  private readonly plateGeo = new PlaneGeometry(PAD_RADIUS * 1.7, PAD_RADIUS * 1.7);
-  /** Ring geometries for each progress step, shared by all pads. */
-  private readonly ringGeos = Array.from(
-    { length: RING_STEPS + 1 },
-    (_, i) =>
-      new RingGeometry(
-        PAD_RADIUS * 1.02,
-        PAD_RADIUS * 1.2,
-        40,
-        1,
-        Math.PI / 2,
-        -(i / RING_STEPS) * Math.PI * 2,
-      ),
-  );
+  readonly mesh: InstancedMesh;
+  private readonly texture: CanvasTexture;
+  private readonly ctx: CanvasRenderingContext2D;
+  private readonly cols: number;
+  private readonly rows: number;
+  private readonly alpha: InstancedBufferAttribute;
+  private readonly shown: { remaining: number; paid: number; tier: number }[];
 
   constructor(world: World, yaw: number) {
-    for (const pad of world.pads) {
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = TEXTURE_SIZE;
-      const texture = new CanvasTexture(canvas);
-      texture.colorSpace = SRGBColorSpace;
-      const material = new MeshBasicMaterial({ map: texture, transparent: true });
-      const plate = new Mesh(this.plateGeo, material);
-      // Lie flat, turned so the text reads upright from the isometric camera.
-      plate.rotation.set(-Math.PI / 2, 0, yaw);
-      plate.position.set(pad.x, 0.05, pad.y);
+    const count = Math.max(world.pads.length, 1);
+    this.cols = Math.ceil(Math.sqrt(count));
+    this.rows = Math.ceil(count / this.cols);
+    const canvas = document.createElement('canvas');
+    canvas.width = this.cols * CELL;
+    canvas.height = this.rows * CELL;
+    this.ctx = canvas.getContext('2d')!;
+    this.texture = new CanvasTexture(canvas);
+    this.texture.colorSpace = SRGBColorSpace;
 
-      const ringMaterial = new MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        side: DoubleSide,
-      });
-      const ring = new Mesh(this.ringGeos[0], ringMaterial);
-      ring.rotation.set(-Math.PI / 2, 0, yaw);
-      ring.position.set(pad.x, 0.06, pad.y);
+    const geometry = new PlaneGeometry(QUAD_SIZE, QUAD_SIZE);
+    const uvRect = new InstancedBufferAttribute(new Float32Array(count * 4), 4);
+    this.alpha = new InstancedBufferAttribute(new Float32Array(count), 1);
+    geometry.setAttribute('uvRect', uvRect);
+    geometry.setAttribute('alpha', this.alpha);
 
-      this.group.add(plate, ring);
-      this.visuals.push({
-        plate,
-        ring,
-        material,
-        ringMaterial,
-        texture,
-        ctx: canvas.getContext('2d')!,
-        shownRemaining: -1,
-        shownStep: -1,
-      });
-    }
+    this.mesh = new InstancedMesh(geometry, createAtlasMaterial(this.texture, true), count);
+    this.mesh.frustumCulled = false;
+    this.mesh.count = world.pads.length;
+
+    // Lie flat, turned so the text reads upright from the isometric camera.
+    const matrix = new Matrix4().makeRotationFromEuler(new Euler(-Math.PI / 2, 0, yaw));
+    const uv = { x: 0, y: 0 };
+    world.pads.forEach((pad, i) => {
+      this.mesh.setMatrixAt(i, matrix.setPosition(pad.x, 0.05, pad.y));
+      cellUv(i, this.cols, this.rows, uv);
+      uvRect.setXYZW(i, uv.x, uv.y, 1 / this.cols, 1 / this.rows);
+    });
+    this.shown = world.pads.map(() => ({ remaining: -1, paid: -1, tier: -1 }));
+
     // Labels drawn before the display font has loaded are redrawn once it arrives.
     void document.fonts?.load(`700 40px ${FONT}`).then(() => {
-      for (const v of this.visuals) v.shownRemaining = -1;
+      for (const s of this.shown) s.remaining = -1;
     });
   }
 
   update(world: World): void {
+    let redrawn = false;
     for (let i = 0; i < world.pads.length; i++) {
       const pad = world.pads[i];
-      const v = this.visuals[i];
-      v.plate.visible = v.ring.visible = pad.active;
+      const alpha = !pad.active ? 0 : padUsable(world, pad) ? 1 : 0.4;
+      if (this.alpha.getX(i) !== alpha) {
+        this.alpha.setX(i, alpha);
+        this.alpha.needsUpdate = true;
+      }
       if (!pad.active) continue;
 
-      const usable = padUsable(world, pad);
-      v.material.opacity = usable ? 1 : 0.4;
-      v.ringMaterial.opacity = usable ? 1 : 0.4;
-
+      const shown = this.shown[i];
       const remaining = pad.cost - pad.paid;
-      if (remaining !== v.shownRemaining) {
-        v.shownRemaining = remaining;
-        this.draw(v, LABELS[pad.type], remaining);
-      }
-      const stepIndex = Math.round((pad.paid / pad.cost) * RING_STEPS);
-      if (stepIndex !== v.shownStep) {
-        v.shownStep = stepIndex;
-        v.ring.geometry = this.ringGeos[stepIndex];
-      }
+      // Tower pads say "UPGRADE" once their plot holds a tower.
+      const tier = pad.plot >= 0 ? world.plots[pad.plot].tier : 0;
+      if (remaining === shown.remaining && pad.paid === shown.paid && tier === shown.tier) continue;
+      shown.remaining = remaining;
+      shown.paid = pad.paid;
+      shown.tier = tier;
+      this.draw(i, tier > 0 ? 'UPGRADE' : LABELS[pad.type], remaining, pad.paid / pad.cost);
+      redrawn = true;
     }
+    if (redrawn) this.texture.needsUpdate = true;
   }
 
   dispose(): void {
-    this.plateGeo.dispose();
-    for (const geo of this.ringGeos) geo.dispose();
-    for (const v of this.visuals) {
-      v.texture.dispose();
-      v.material.dispose();
-      v.ringMaterial.dispose();
-    }
+    this.texture.dispose();
+    this.mesh.geometry.dispose();
+    (this.mesh.material as ShaderMaterial).dispose();
+    this.mesh.dispose();
   }
 
-  private draw(v: PadVisual, label: string, remaining: number): void {
-    const { ctx } = v;
-    const s = TEXTURE_SIZE;
-    ctx.clearRect(0, 0, s, s);
+  private draw(index: number, label: string, remaining: number, progress: number): void {
+    const { ctx } = this;
+    const x = (index % this.cols) * CELL;
+    const y = Math.floor(index / this.cols) * CELL;
+    const c = CELL / 2;
+    ctx.clearRect(x, y, CELL, CELL);
+
     ctx.fillStyle = '#3dbe5a';
     ctx.beginPath();
-    ctx.roundRect(8, 8, s - 16, s - 16, 28);
+    ctx.roundRect(x + 20, y + 20, CELL - 40, CELL - 40, 20);
     ctx.fill();
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 4;
     ctx.strokeStyle = '#2a8f40';
     ctx.stroke();
 
+    // Progress ring: a faint full circle with the paid share drawn over it, clockwise from the top.
+    ctx.lineWidth = 9;
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.beginPath();
+    ctx.arc(x + c, y + c, RING_RADIUS_PX, 0, Math.PI * 2);
+    ctx.stroke();
+    if (progress > 0) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(x + c, y + c, RING_RADIUS_PX, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+    }
+
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.font = `600 24px ${FONT}`;
-    ctx.fillText(label, s / 2, 44);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = `600 16px ${FONT}`;
+    ctx.fillText(label, x + c, y + 44);
     ctx.fillStyle = '#ffffff';
-    ctx.font = `700 64px ${FONT}`;
-    ctx.fillText(String(remaining), s / 2, 100);
-    v.texture.needsUpdate = true;
+    ctx.font = `700 40px ${FONT}`;
+    ctx.fillText(String(remaining), x + c, y + 76);
   }
 }

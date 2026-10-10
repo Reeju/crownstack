@@ -1,0 +1,125 @@
+{
+  "id": 4,
+  "name": "Ridge Road",
+  "map": "ridge-b",
+  "startGold": 100,
+  "parTimeSec": 150,
+  "coinCap": 60,
+  "dash": true,
+  "chests": [
+    {
+      "pos": [27.6, 15],
+      "coins": 6
+    },
+    {
+      "pos": [24, 8.5],
+      "coins": 8
+    }
+  ],
+  "squad": {
+    "archers": 5,
+    "tier": 0
+  },
+  "pads": [
+    {
+      "type": "tower",
+      "plot": "n",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "ne",
+      "cost": 50
+    },
+    {
+      "type": "forge",
+      "cost": 80,
+      "produces": {
+        "gear": 6
+      }
+    },
+    {
+      "type": "repair",
+      "cost": 30
+    }
+  ],
+  "waves": [
+    {
+      "at": 5,
+      "path": "n",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 10,
+          "interval": 0.6
+        }
+      ]
+    },
+    {
+      "at": 30,
+      "path": "n",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.5
+        }
+      ]
+    },
+    {
+      "at": 58,
+      "path": "n",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.5,
+          "delay": 2
+        }
+      ]
+    },
+    {
+      "at": 88,
+      "path": "n",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.4
+        }
+      ]
+    },
+    {
+      "at": 115,
+      "path": "n",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.4,
+          "delay": 2
+        }
+      ]
+    }
+  ],
+  "tutorial": [
+    {
+      "trigger": "start",
+      "text": "Double-tap or press Space to dash."
+    },
+    {
+      "trigger": "padPaid:tower",
+      "text": "Chests wait up the pass. Fetch them between waves."
+    }
+  ]
+}
