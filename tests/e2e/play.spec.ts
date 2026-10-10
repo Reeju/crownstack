@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { fps, snapshot, startLevelOne, walkTo } from './helpers';
+import { fps, snapshot, startLevelOne, walkTo, walkToPad } from './helpers';
 
 test('collects coins and pays the tower pad', async ({ page }) => {
   await startLevelOne(page);
@@ -11,7 +11,7 @@ test('collects coins and pays the tower pad', async ({ page }) => {
   await walkTo(page, 25, 15);
   await expect.poll(async () => (await snapshot(page)).gold).toBeGreaterThan(60);
 
-  await walkTo(page, 30, 13.6);
+  await walkToPad(page, 'tower-ne');
   await expect.poll(async () => (await snapshot(page)).towers, { timeout: 30_000 }).toBe(1);
   console.log(`frame rate: ${(await fps(page)).toFixed(1)} fps`);
   expect((await snapshot(page)).gold).toBeLessThan(60);
@@ -36,7 +36,7 @@ test('wins level 1 with scripted input', async ({ page }) => {
 
   // Grab the loose coins, build the tower, then hold the middle of the yard.
   await walkTo(page, 25, 15);
-  await walkTo(page, 30, 13.6);
+  await walkToPad(page, 'tower-ne');
   await expect.poll(async () => (await snapshot(page)).towers, { timeout: 30_000 }).toBe(1);
   await walkTo(page, 27, 18);
 

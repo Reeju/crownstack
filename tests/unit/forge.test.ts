@@ -102,7 +102,7 @@ describe('keep upgrade', () => {
       archers(w)
         .map((e) => w.slot[e])
         .sort(),
-    ).toEqual([0, 1, 2, 3, 4, 5]);
+    ).toEqual([...Array(before + 2).keys()]);
   });
 });
 
