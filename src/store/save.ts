@@ -23,6 +23,8 @@ export const saveSchema = z.object({
     reducedMotion: z.boolean(),
     colorBlind: z.boolean(),
     difficulty: difficultySchema,
+    /** Render quality; added after the first release, hence the default. */
+    quality: z.enum(['auto', 'low', 'high']).default('auto'),
   }),
   stats: z.object({
     kills: z.number().nonnegative(),
@@ -53,6 +55,7 @@ export function defaultSave(): SaveV1 {
       reducedMotion: prefersReducedMotion,
       colorBlind: false,
       difficulty: 'normal',
+      quality: 'auto',
     },
     stats: { kills: 0, goldEarned: 0, playtimeSec: 0 },
   };

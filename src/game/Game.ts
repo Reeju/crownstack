@@ -1,5 +1,6 @@
 import { getLevel, getMap, units } from '../content';
 import type { Difficulty } from '../content/schema';
+import { AudioManager } from './audio';
 import { InputManager } from './input';
 import { FixedLoop } from './loop';
 import { GameRenderer, type Quality } from './render/scene';
@@ -28,6 +29,10 @@ export interface HudState {
   bannerAngle: number;
   /** Tutorial hint text, or '' when none is showing. */
   hint: string;
+  /** True once a key has been pressed, so keyboard hints can be shown (SPEC §7.2). */
+  keyboard: boolean;
+  /** Whether this level has the dash ability. */
+  dash: boolean;
 }
 
 export interface GameCallbacks {
@@ -52,8 +57,38 @@ export interface PerfStats {
   drawCalls: number;
 }
 
+/** The player's quality choice; `auto` picks a tier with a short benchmark at launch. */
+export type QualitySetting = 'auto' | Quality;
+
+export interface GameSettings {
+  music: number;
+  sfx: number;
+  haptics: boolean;
+  reducedMotion: boolean;
+  colorBlind: boolean;
+  quality: QualitySetting;
+}
+
 const BACKDROP_LEVEL = 1;
 const PERF_SMOOTHING = 0.05;
+/** Auto quality: after a short warm-up, one second of frames decides the tier (SPEC §7.3). */
+const BENCHMARK_WARMUP_SEC = 0.5;
+const BENCHMARK_SEC = 1;
+const BENCHMARK_MIN_FPS = 50;
+/**
+ * The tier last used is remembered so the next launch can create its WebGL
+ * context to match (antialiasing cannot be changed on a live context).
+ */
+const TIER_KEY = 'crownstack.tier';
+
+function storedTier(): Quality | null {
+  try {
+    const tier = localStorage.getItem(TIER_KEY);
+    return tier === 'low' || tier === 'high' ? tier : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Owns the frame loop, input, simulation and renderer (SPEC §6.2). React talks
@@ -62,7 +97,11 @@ const PERF_SMOOTHING = 0.05;
 export class Game {
   readonly perf: PerfStats = { fps: 60, simMs: 0, renderMs: 0, drawCalls: 0 };
   private readonly renderer: GameRenderer;
+  private readonly audio = new AudioManager();
   private readonly input: InputManager;
+  /** Quality forced by `?quality=`, which wins over the saved setting (used by tests). */
+  private readonly forcedQuality: Quality | null;
+  private benchmark: { elapsed: number; frames: number } | null = null;
   private readonly loop: FixedLoop;
   private readonly resizeObserver: ResizeObserver;
   private world: World;
@@ -72,14 +111,16 @@ export class Game {
   private bannerSpawn = { x: 0, y: 0 };
   private readonly screenPoint = { x: 0, y: 0 };
   private tutorial: Tutorial | null = null;
+  private autoQualityDone = false;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly callbacks: GameCallbacks,
   ) {
     const params = new URLSearchParams(location.search);
-    const quality: Quality = params.get('quality') === 'low' ? 'low' : 'high';
-    this.renderer = new GameRenderer(canvas, quality);
+    const requested = params.get('quality');
+    this.forcedQuality = requested === 'low' || requested === 'high' ? requested : null;
+    this.renderer = new GameRenderer(canvas, this.forcedQuality ?? storedTier() ?? 'high');
     this.input = new InputManager(canvas, () => this.callbacks.onPauseRequest());
     this.loop = new FixedLoop({ step: this.step, render: this.render });
 
@@ -99,15 +140,33 @@ export class Game {
     }
   }
 
-  /** True once the player has pressed a key, so the UI can show keyboard hints. */
-  get keyboardUsed(): boolean {
-    return this.input.keyboard.used;
-  }
-
-  /** Applies the player's accessibility settings to the renderer. */
-  applySettings(settings: { reducedMotion: boolean; colorBlind: boolean }): void {
+  /** Applies the player's settings: accessibility, audio levels and quality tier. */
+  applySettings(settings: GameSettings): void {
     this.renderer.reducedMotion = settings.reducedMotion;
     this.renderer.colorBlind = settings.colorBlind;
+    this.audio.applySettings(settings);
+
+    if (this.forcedQuality) return;
+    if (settings.quality === 'auto') {
+      if (!this.autoQualityDone) this.benchmark = { elapsed: -BENCHMARK_WARMUP_SEC, frames: 0 };
+    } else {
+      this.benchmark = null;
+      this.setTier(settings.quality);
+    }
+  }
+
+  private setTier(tier: Quality): void {
+    this.renderer.setQuality(tier);
+    try {
+      localStorage.setItem(TIER_KEY, tier);
+    } catch {
+      // Without storage the tier is simply measured again next launch.
+    }
+  }
+
+  /** Quality tier currently in use. */
+  get quality(): Quality {
+    return this.renderer.currentQuality;
   }
 
   /** Read-only view of the current world, for tests and debug tooling. */
@@ -137,6 +196,7 @@ export class Game {
     this.resizeObserver.disconnect();
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.input.dispose();
+    this.audio.dispose();
     this.renderer.dispose();
   }
 
@@ -167,6 +227,7 @@ export class Game {
 
   private handleEvent(type: EvType, x: number, y: number, a: number, b: number): void {
     this.renderer.onEvent(type, x, y, a, b);
+    this.audio.onEvent(this.world, type, a, b);
     switch (type) {
       case Ev.WaveAnnounced:
         this.bannerWave = a + 1;
@@ -190,8 +251,22 @@ export class Game {
     perf.renderMs += (performance.now() - t0 - perf.renderMs) * PERF_SMOOTHING;
     if (frameSec > 0) perf.fps += (1 / frameSec - perf.fps) * PERF_SMOOTHING;
     perf.drawCalls = this.renderer.drawCalls;
+    this.runBenchmark(frameSec);
     this.syncHud();
   };
+
+  /** Auto quality: drop to the low tier if the device cannot hold the frame rate. */
+  private runBenchmark(frameSec: number): void {
+    const bench = this.benchmark;
+    if (!bench || document.hidden) return;
+    bench.elapsed += frameSec;
+    if (bench.elapsed <= 0) return;
+    bench.frames++;
+    if (bench.elapsed < BENCHMARK_SEC) return;
+    this.setTier(bench.frames / bench.elapsed < BENCHMARK_MIN_FPS ? 'low' : 'high');
+    this.benchmark = null;
+    this.autoQualityDone = true;
+  }
 
   private syncHud(): void {
     const w = this.world;
@@ -217,6 +292,8 @@ export class Game {
       bannerWave,
       bannerAngle,
       hint: this.loop.paused ? prev.hint : (hint?.text ?? ''),
+      keyboard: this.input.keyboard.used,
+      dash: w.cfg.level.dash,
     };
     for (const key of Object.keys(next) as (keyof HudState)[]) {
       if (next[key] !== prev[key]) {
@@ -228,6 +305,7 @@ export class Game {
   }
 
   private readonly onVisibilityChange = (): void => {
+    this.audio.setSuspended(document.hidden);
     if (document.hidden && !this.loop.paused) this.callbacks.onPauseRequest();
   };
 }
@@ -242,5 +320,7 @@ function emptyHud(): HudState {
     bannerWave: 0,
     bannerAngle: 0,
     hint: '',
+    keyboard: false,
+    dash: false,
   };
 }

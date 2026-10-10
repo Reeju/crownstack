@@ -6,7 +6,11 @@ import {
   Mesh,
   MeshBasicMaterial,
   RingGeometry,
+  PCFSoftShadowMap,
   Scene,
+  Shape,
+  ShapeGeometry,
+  Vector3,
   WebGLRenderer,
 } from 'three';
 
@@ -72,10 +76,16 @@ const NIGHT = {
 /** Render quality tier (SPEC §7.3). */
 export type Quality = 'low' | 'high';
 
+/** Low: no shadows, 150 particles, DPR 1. High: 1024 shadow map, 600 particles, DPR 2. */
 const QUALITY = {
-  low: { antialias: false, maxDpr: 1, particles: 150 },
-  high: { antialias: true, maxDpr: 2, particles: 600 },
+  low: { antialias: false, maxDpr: 1, shadows: false, particleDensity: 0.25 },
+  high: { antialias: true, maxDpr: 2, shadows: true, particleDensity: 1 },
 } as const;
+const MAX_PARTICLES = 600;
+const SHADOW_MAP_SIZE = 1024;
+/** Direction from the scene toward the sun. */
+const SUN_DIRECTION = new Vector3(-6, 14, 8).normalize();
+const MARKER_SIZE = 0.42;
 
 /** three.js view of a World. Reads simulation state; never writes it. */
 export class GameRenderer {
@@ -110,6 +120,8 @@ export class GameRenderer {
   private readonly barBack: BillboardPool;
   private readonly barFill: BillboardPool;
   private readonly particles: Particles;
+  private readonly markerTriangles: BillboardPool;
+  private readonly markerSquares: BillboardPool;
   private popups: Popups | null = null;
   private readonly basis = billboardBasis(this.iso.yaw, this.iso.pitch);
   private readonly coinStack = new CoinStack();
@@ -120,7 +132,7 @@ export class GameRenderer {
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    private readonly quality: Quality,
+    private quality: Quality,
   ) {
     this.renderer = new WebGLRenderer({
       canvas,
@@ -129,8 +141,10 @@ export class GameRenderer {
     });
     this.scene.background = new Color(PALETTE.background);
 
-    this.sun.position.set(-6, 14, 8);
-    this.scene.add(this.ambient, this.sun);
+    this.renderer.shadowMap.type = PCFSoftShadowMap;
+    this.sun.shadow.mapSize.set(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
+    this.sun.shadow.bias = -0.0015;
+    this.scene.add(this.ambient, this.sun, this.sun.target);
 
     this.king = new Mesh(kingGeometry(), this.material);
     this.squadRing = new Mesh(
@@ -172,7 +186,17 @@ export class GameRenderer {
     this.barBack = new BillboardPool(this.basis, 256, true);
     this.barFill = new BillboardPool(this.basis, 256, true);
     this.barFill.mesh.renderOrder = 11;
-    this.particles = new Particles(this.basis, QUALITY[quality].particles);
+    this.particles = new Particles(this.basis, MAX_PARTICLES);
+
+    // Colour-blind shape markers: a triangle over raiders and brutes, a square over giants and bosses.
+    const triangle = new Shape().moveTo(0, 0.6).lineTo(0.55, -0.4).lineTo(-0.55, -0.4).closePath();
+    this.markerTriangles = new BillboardPool(this.basis, 512, false, new ShapeGeometry(triangle));
+    this.markerSquares = new BillboardPool(this.basis, 128);
+    this.scene.add(this.markerTriangles.mesh, this.markerSquares.mesh);
+
+    for (const pool of this.pools) pool.mesh.castShadow = true;
+    this.king.castShadow = true;
+    this.setQuality(quality);
     this.scene.add(this.barBack.mesh, this.barFill.mesh, this.particles.pool.mesh);
   }
 
@@ -184,6 +208,18 @@ export class GameRenderer {
     this.popups = new Popups(this.basis, world.cfg.units);
     this.scene.add(this.level.group, this.pads.mesh, this.popups.mesh);
     this.applyLighting(world.cfg.level.night);
+
+    // Aim the sun (and its shadow frustum) at the middle of the map.
+    const { w: mapW, h: mapH } = world.cfg.map.size;
+    const reach = Math.max(mapW, mapH) * 0.8;
+    this.sun.target.position.set(mapW / 2, 0, mapH / 2);
+    this.sun.position.copy(this.sun.target.position).addScaledVector(SUN_DIRECTION, 70);
+    const shadowCamera = this.sun.shadow.camera;
+    shadowCamera.left = shadowCamera.bottom = -reach;
+    shadowCamera.right = shadowCamera.top = reach;
+    shadowCamera.near = 1;
+    shadowCamera.far = 160;
+    shadowCamera.updateProjectionMatrix();
     this.squadRing.scale.setScalar(world.cfg.units.archer.ringRadius);
     this.snapCamera = true;
     this.resize(world);
@@ -221,6 +257,8 @@ export class GameRenderer {
     for (const pool of this.pools) pool.begin();
     this.barBack.begin();
     this.barFill.begin();
+    this.markerTriangles.begin();
+    this.markerSquares.begin();
     if (heroAlive) this.bar(hx, 2.1, hz, 1.2, w.hp[hero] / w.maxHp[hero], BAR_PLAYER, false);
 
     for (let e = 0; e < w.highWater; e++) {
@@ -258,6 +296,18 @@ export class GameRenderer {
           BAR_ENEMY,
           big,
         );
+        if (this.colorBlind) {
+          const markerY = ENEMY_HEIGHT[def.model] * scale + 0.75;
+          const size = big ? MARKER_SIZE * 1.8 : MARKER_SIZE;
+          (big ? this.markerSquares : this.markerTriangles).add(
+            x,
+            markerY,
+            z,
+            size,
+            size,
+            PALETTE.white,
+          );
+        }
       } else if (kind === Kind.Arrow) {
         this.arrows.add(x, ARROW_HEIGHT, z, -w.facing[e]);
       } else if (kind === Kind.Fence) {
@@ -319,6 +369,8 @@ export class GameRenderer {
     for (const pool of this.pools) pool.end();
     this.barBack.end();
     this.barFill.end();
+    this.markerTriangles.end();
+    this.markerSquares.end();
     this.particles.update(frameSec);
     this.popups?.update(frameSec);
     if (this.night) this.ambient.intensity = w.eco.brazierLit ? NIGHT.ambientLit : NIGHT.ambient;
@@ -370,6 +422,31 @@ export class GameRenderer {
     }
   }
 
+  /** Switches quality tier at runtime: shadows, particle density and pixel ratio. */
+  setQuality(quality: Quality): void {
+    const tier = QUALITY[quality];
+    this.quality = quality;
+    this.particles.density = tier.particleDensity;
+    if (this.renderer.shadowMap.enabled !== tier.shadows) {
+      this.renderer.shadowMap.enabled = tier.shadows;
+      this.sun.castShadow = tier.shadows;
+      // Materials compile shadow support in, so they must be rebuilt.
+      this.scene.traverse((object) => {
+        const material = (object as Mesh).material;
+        if (material && !Array.isArray(material)) material.needsUpdate = true;
+      });
+    }
+    const { clientWidth, clientHeight } = this.canvas;
+    if (clientWidth > 0 && clientHeight > 0) {
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, tier.maxDpr));
+      this.renderer.setSize(clientWidth, clientHeight, false);
+    }
+  }
+
+  get currentQuality(): Quality {
+    return this.quality;
+  }
+
   /** Day or night palette: night dims and blues the lights and adds dark-blue fog. */
   private applyLighting(night: boolean): void {
     const look = night ? NIGHT : DAY;
@@ -392,6 +469,8 @@ export class GameRenderer {
     for (const pool of this.pools) pool.dispose();
     this.barBack.dispose();
     this.barFill.dispose();
+    this.markerTriangles.dispose();
+    this.markerSquares.dispose();
     this.particles.dispose();
     this.king.geometry.dispose();
     this.pointer.geometry.dispose();

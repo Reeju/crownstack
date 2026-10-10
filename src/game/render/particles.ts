@@ -16,6 +16,8 @@ export class Particles {
   private readonly size: Float32Array;
   private readonly hex: Uint32Array;
   private cursor = 0;
+  /** Share of each burst that is actually emitted (lower on the low quality tier). */
+  density = 1;
 
   constructor(
     basis: BillboardBasis,
@@ -45,7 +47,8 @@ export class Particles {
     speed: number,
     size = 0.14,
   ): void {
-    for (let i = 0; i < count; i++) {
+    const emitted = Math.max(1, Math.round(count * this.density));
+    for (let i = 0; i < emitted; i++) {
       const p = this.cursor;
       this.cursor = (this.cursor + 1) % this.capacity;
       // Cosmetic only, so unseeded randomness is fine here (never in sim/).

@@ -4,7 +4,7 @@ import { useSessionStore } from '../store/session';
 export function UpdateToast() {
   const applyUpdate = useSessionStore((s) => s.applyUpdate);
   const screen = useSessionStore((s) => s.screen);
-  if (!applyUpdate || screen === 'playing') return null;
+  if (!applyUpdate || screen === 'playing' || screen === 'countdown') return null;
 
   return (
     <div className="toast" role="status">

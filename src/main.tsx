@@ -5,6 +5,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { App } from './app/App';
+import { watchInstallPrompt } from './pwa/install';
 import { registerServiceWorker } from './pwa/register';
 
 const root = document.getElementById('root');
@@ -17,3 +18,4 @@ createRoot(root).render(
 );
 
 registerServiceWorker();
+watchInstallPrompt();

@@ -1,4 +1,5 @@
 import { useSessionStore } from '../store/session';
+import { InstallButton } from './InstallButton';
 
 export function Title() {
   const open = useSessionStore((s) => s.open);
@@ -18,6 +19,7 @@ export function Title() {
           About
         </button>
       </div>
+      <InstallButton />
     </main>
   );
 }

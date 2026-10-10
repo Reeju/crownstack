@@ -1,6 +1,6 @@
 {
   "name": "crownstack",
-  "version": "0.1.0",
+  "version": "1.0.0-rc.1",
   "description": "Crownstack \u2014 a hero-defense PWA: stack gold, arm your archers, hold the palisade.",
   "scripts": {
     "dev": "vite",

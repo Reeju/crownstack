@@ -126,13 +126,16 @@ export class LevelView {
     const map = world.cfg.map;
     // Only the paths this level's waves use are drawn.
     const usedPaths = world.paths.filter((_, i) => world.waves.some((wave) => wave.path === i));
-    this.group.add(new Mesh(this.track(this.terrain(map, usedPaths)), modelMaterial));
+    const terrain = new Mesh(this.track(this.terrain(map, usedPaths)), modelMaterial);
+    terrain.receiveShadow = true;
+    this.group.add(terrain);
 
     // Palisade and gates: one instanced post mesh; each barrier owns a run of posts.
     const barriers = [...map.blockers.fences, ...map.blockers.gates];
     const postCount = barriers.reduce((sum, f) => sum + this.postsFor(f), 0);
     this.posts = new InstancedMesh(this.track(fencePostGeometry()), modelMaterial, postCount);
     this.posts.frustumCulled = false;
+    this.posts.castShadow = true;
     let next = 0;
     barriers.forEach((f, index) => {
       const count = this.postsFor(f);
@@ -154,6 +157,7 @@ export class LevelView {
 
     this.keepMesh = new Mesh(this.track(keepGeometry(map.keep.w, map.keep.h)), modelMaterial);
     this.keepMesh.position.set(map.keep.x + map.keep.w / 2, 0, map.keep.y + map.keep.h / 2);
+    this.keepMesh.castShadow = true;
     this.group.add(this.keepMesh);
 
     for (const b of map.blockers.buildings) {
@@ -165,6 +169,7 @@ export class LevelView {
             : brazierGeometry();
       const mesh = new Mesh(this.track(geo), modelMaterial);
       mesh.position.set(b.pos[0], 0, b.pos[1]);
+      mesh.castShadow = true;
       if (b.type === 'archery') this.archeryMesh = mesh;
       this.group.add(mesh);
       if (b.type === 'brazier') {
@@ -340,6 +345,7 @@ export class LevelView {
       mesh.setMatrixAt(i, matrix.makeScale(item.s, item.s, item.s).setPosition(item.x, 0, item.y));
     });
     mesh.frustumCulled = false;
+    mesh.castShadow = true;
     this.disposables.push(mesh);
     this.group.add(mesh);
   }
