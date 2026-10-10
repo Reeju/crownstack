@@ -29,8 +29,9 @@ export function consumeFrame(state: { acc: number }, frameSec: number): number {
 
 /** requestAnimationFrame driver with a fixed-step accumulator (SPEC §6.3). */
 export class FixedLoop {
-  /** When true, frames still render but the simulation does not advance. */
+  /** When true the simulation does not advance and frames are drawn only on request. */
   paused = false;
+  private pendingFrames = 0;
   private readonly state = { acc: 0 };
   private raf = 0;
   private last = 0;
@@ -41,6 +42,11 @@ export class FixedLoop {
     if (this.raf !== 0) return;
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
+  }
+
+  /** Draws a few frames while paused: after a resize, a setting change or the pause itself. */
+  requestRender(frames = 2): void {
+    this.pendingFrames = Math.max(this.pendingFrames, frames);
   }
 
   stop(): void {
@@ -54,11 +60,17 @@ export class FixedLoop {
     this.last = now;
 
     if (this.paused) {
+      // Nothing moves while paused, so frames are drawn only on request. An idle
+      // menu then costs no CPU or battery.
       this.state.acc = 0;
-    } else {
-      const steps = consumeFrame(this.state, frameSec);
-      for (let i = 0; i < steps; i++) this.callbacks.step();
+      if (this.pendingFrames > 0) {
+        this.pendingFrames--;
+        this.callbacks.render(1, frameSec);
+      }
+      return;
     }
-    this.callbacks.render(this.paused ? 1 : this.state.acc / DT, frameSec);
+    const steps = consumeFrame(this.state, frameSec);
+    for (let i = 0; i < steps; i++) this.callbacks.step();
+    this.callbacks.render(this.state.acc / DT, frameSec);
   };
 }

@@ -1,15 +1,15 @@
 import {
   AmbientLight,
+  BufferGeometry,
   Color,
   DirectionalLight,
+  Float32BufferAttribute,
   Fog,
   Mesh,
   MeshBasicMaterial,
   RingGeometry,
   PCFSoftShadowMap,
   Scene,
-  Shape,
-  ShapeGeometry,
   Vector3,
   WebGLRenderer,
 } from 'three';
@@ -189,8 +189,12 @@ export class GameRenderer {
     this.particles = new Particles(this.basis, MAX_PARTICLES);
 
     // Colour-blind shape markers: a triangle over raiders and brutes, a square over giants and bosses.
-    const triangle = new Shape().moveTo(0, 0.6).lineTo(0.55, -0.4).lineTo(-0.55, -0.4).closePath();
-    this.markerTriangles = new BillboardPool(this.basis, 512, false, new ShapeGeometry(triangle));
+    const triangle = new BufferGeometry();
+    triangle.setAttribute(
+      'position',
+      new Float32BufferAttribute([0, 0.6, 0, -0.55, -0.4, 0, 0.55, -0.4, 0], 3),
+    );
+    this.markerTriangles = new BillboardPool(this.basis, 512, false, triangle);
     this.markerSquares = new BillboardPool(this.basis, 128);
     this.scene.add(this.markerTriangles.mesh, this.markerSquares.mesh);
 
@@ -419,6 +423,15 @@ export class GameRenderer {
         break;
       default:
         break;
+    }
+  }
+
+  /** Compiles every material in the scene, without blocking where the browser supports it. */
+  async precompile(): Promise<void> {
+    try {
+      await this.renderer.compileAsync(this.scene, this.iso.camera);
+    } catch {
+      // Falling back to compiling on first draw is fine.
     }
   }
 

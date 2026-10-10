@@ -32,6 +32,8 @@ type SessionState = {
   applyUpdate: (() => void) | null;
   /** Set when the browser has offered to install the app (`beforeinstallprompt`). */
   installPrompt: (() => Promise<void>) | null;
+  /** A level chosen before the engine finished loading. */
+  pendingStart: { levelId: number; attempt: number } | null;
 
   attachGame: (game: Game | null) => void;
   setHud: (hud: HudState) => void;
@@ -70,14 +72,20 @@ const EMPTY_HUD: HudState = {
 /** Transient UI state for the current browser session (never persisted). */
 export const useSessionStore = create<SessionState>((set, get) => {
   const run = (levelId: number, attempt: number): void => {
+    const game = get().game;
+    if (!game) {
+      // The engine chunk is still loading: start as soon as it attaches.
+      set({ pendingStart: { levelId, attempt } });
+      return;
+    }
     const progress = useProgressStore.getState();
-    get().game?.start({
+    game.start({
       levelId,
       attempt,
       difficulty: progress.settings.difficulty,
       meta: metaBonuses(upgrades, progress.upgrades),
     });
-    set({ screen: 'playing', levelId, attempt, result: null, hud: EMPTY_HUD });
+    set({ screen: 'playing', levelId, attempt, result: null, hud: EMPTY_HUD, pendingStart: null });
   };
 
   return {
@@ -90,8 +98,13 @@ export const useSessionStore = create<SessionState>((set, get) => {
     game: null,
     applyUpdate: null,
     installPrompt: null,
+    pendingStart: null,
 
-    attachGame: (game) => set({ game }),
+    attachGame: (game) => {
+      set({ game });
+      const pending = get().pendingStart;
+      if (game && pending) run(pending.levelId, pending.attempt);
+    },
     setHud: (hud) => set({ hud }),
 
     open: (screen) =>

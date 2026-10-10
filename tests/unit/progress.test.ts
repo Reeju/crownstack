@@ -140,3 +140,16 @@ describe('save migration', () => {
     expect(storage.has(BACKUP_KEY)).toBe(true);
   });
 });
+
+describe('save durability', () => {
+  it('keeps a synchronous copy until the asynchronous write has landed', async () => {
+    const { readRawSave, writeSave } = await import('../../src/store/save');
+    const save = { ...defaultSave(), crownsSpent: 7 };
+    // There is no IndexedDB in the test environment, so the write falls back to localStorage...
+    const pending = writeSave(save);
+    // ...but the newest save is readable before that has even resolved.
+    expect(await readRawSave()).toEqual(save);
+    await pending;
+    expect(await readRawSave()).toEqual(save);
+  });
+});
