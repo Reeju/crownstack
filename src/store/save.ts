@@ -61,31 +61,52 @@ export function defaultSave(): SaveV1 {
   };
 }
 
-/** Reads the raw save: IndexedDB first, then the localStorage fallback. */
-export async function readRawSave(): Promise<unknown> {
+/**
+ * A synchronous copy of the newest save. IndexedDB writes are asynchronous and
+ * can be lost if the page closes right after a change; this copy cannot.
+ */
+const PENDING_KEY = 'crownstack.save.pending';
+
+function readLocal(key: string): unknown {
   try {
-    const stored = await get<unknown>(SAVE_KEY);
-    if (stored !== undefined) return stored;
-  } catch {
-    // IndexedDB is unavailable (private mode, blocked storage): fall through.
-  }
-  try {
-    const text = localStorage.getItem(SAVE_KEY);
+    const text = localStorage.getItem(key);
     return text === null ? undefined : JSON.parse(text);
   } catch {
     return undefined;
   }
 }
 
+/** Reads the raw save: an unflushed write first, then IndexedDB, then the localStorage fallback. */
+export async function readRawSave(): Promise<unknown> {
+  const pending = readLocal(PENDING_KEY);
+  if (pending !== undefined) return pending;
+  try {
+    const stored = await get<unknown>(SAVE_KEY);
+    if (stored !== undefined) return stored;
+  } catch {
+    // IndexedDB is unavailable (private mode, blocked storage): fall through.
+  }
+  return readLocal(SAVE_KEY);
+}
+
 /** Writes the save to IndexedDB, falling back to localStorage if that fails. */
 export async function writeSave(save: SaveV1): Promise<void> {
+  const json = JSON.stringify(save);
+  try {
+    localStorage.setItem(PENDING_KEY, json);
+  } catch {
+    // Storage is full or blocked; IndexedDB below is still worth trying.
+  }
   try {
     await set(SAVE_KEY, save);
+    // Only clear the copy if no newer write has replaced it meanwhile.
+    if (localStorage.getItem(PENDING_KEY) === json) localStorage.removeItem(PENDING_KEY);
   } catch {
     try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+      localStorage.setItem(SAVE_KEY, json);
+      localStorage.removeItem(PENDING_KEY);
     } catch {
-      // Storage is full or blocked; progress simply will not persist this session.
+      // Nothing persists this session.
     }
   }
 }

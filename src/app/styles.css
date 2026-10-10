@@ -6,7 +6,8 @@
   --blue: #2f6de1;
   --blue-dark: #1f4fb0;
   --gold: #f7c948;
-  --red: #e53935;
+  /* UI red is darker than the enemies' red so white text on it passes 4.5:1. */
+  --red: #d32f2f;
   --font-display: 'Fredoka Variable', 'Fredoka', ui-rounded, system-ui, sans-serif;
   --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -102,6 +103,7 @@ body {
 
 .btn-primary {
   min-width: 200px;
+  color: #fff;
   background: var(--blue);
   box-shadow: 0 5px 0 var(--blue-dark);
 }
@@ -276,7 +278,7 @@ body {
   white-space: nowrap;
   color: #fff;
   background: var(--red);
-  box-shadow: 0 4px 0 #9c1f1c;
+  box-shadow: 0 4px 0 #8e1b1b;
 }
 
 /* Edge arrow pointing at the spawn path of the announced wave. */

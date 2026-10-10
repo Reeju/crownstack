@@ -71,10 +71,14 @@ export interface GameSettings {
 
 const BACKDROP_LEVEL = 1;
 const PERF_SMOOTHING = 0.05;
-/** Auto quality: after a short warm-up, one second of frames decides the tier (SPEC §7.3). */
-const BENCHMARK_WARMUP_SEC = 0.5;
+/**
+ * Auto quality (SPEC §7.3): the benchmark runs in the first seconds of the
+ * first level played. After a warm-up (shader compiles, the opening camera
+ * snap), one second of frames decides the tier.
+ */
+const BENCHMARK_WARMUP_SEC = 2.5;
 const BENCHMARK_SEC = 1;
-const BENCHMARK_MIN_FPS = 50;
+const BENCHMARK_MIN_FPS = 45;
 /**
  * The tier last used is remembered so the next launch can create its WebGL
  * context to match (antialiasing cannot be changed on a live context).
@@ -128,8 +132,13 @@ export class Game {
     this.world = this.createRun({ levelId: BACKDROP_LEVEL, attempt: 0, difficulty: 'normal' });
     this.renderer.loadLevel(this.world);
     this.loop.paused = true;
+    // Compile shaders off the main thread where the browser can, then draw the backdrop once.
+    void this.renderer.precompile().then(() => this.loop.requestRender());
 
-    this.resizeObserver = new ResizeObserver(() => this.renderer.resize(this.world));
+    this.resizeObserver = new ResizeObserver(() => {
+      this.renderer.resize(this.world);
+      this.loop.requestRender();
+    });
     this.resizeObserver.observe(canvas);
     document.addEventListener('visibilitychange', this.onVisibilityChange);
     this.loop.start();
@@ -145,6 +154,7 @@ export class Game {
     this.renderer.reducedMotion = settings.reducedMotion;
     this.renderer.colorBlind = settings.colorBlind;
     this.audio.applySettings(settings);
+    this.loop.requestRender();
 
     if (this.forcedQuality) return;
     if (settings.quality === 'auto') {
@@ -185,6 +195,7 @@ export class Game {
 
   pause(): void {
     this.loop.paused = true;
+    this.loop.requestRender();
   }
 
   resume(): void {
@@ -236,7 +247,7 @@ export class Game {
         break;
       case Ev.LevelWon:
       case Ev.LevelLost:
-        this.loop.paused = true;
+        this.pause();
         this.callbacks.onOutcome(type === Ev.LevelWon, runResult(this.world));
         break;
       default:
@@ -249,9 +260,12 @@ export class Game {
     this.renderer.render(this.world, alpha, frameSec);
     const perf = this.perf;
     perf.renderMs += (performance.now() - t0 - perf.renderMs) * PERF_SMOOTHING;
-    if (frameSec > 0) perf.fps += (1 / frameSec - perf.fps) * PERF_SMOOTHING;
     perf.drawCalls = this.renderer.drawCalls;
-    this.runBenchmark(frameSec);
+    // Frame rate is only meaningful while frames are drawn continuously.
+    if (!this.loop.paused) {
+      if (frameSec > 0) perf.fps += (1 / frameSec - perf.fps) * PERF_SMOOTHING;
+      this.runBenchmark(frameSec);
+    }
     this.syncHud();
   };
 
