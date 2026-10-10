@@ -59,6 +59,21 @@ export function Settings() {
           </label>
         ))}
 
+        <label className="field">
+          <span>
+            Graphics
+            <small>Auto measures your device at launch</small>
+          </span>
+          <select
+            value={settings.quality}
+            onChange={(ev) => set('quality', ev.target.value as SettingsData['quality'])}
+          >
+            <option value="auto">Auto</option>
+            <option value="high">High</option>
+            <option value="low">Low</option>
+          </select>
+        </label>
+
         <button type="button" className="btn btn-primary" autoFocus onClick={back}>
           Done
         </button>

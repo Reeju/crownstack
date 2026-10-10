@@ -1,6 +1,7 @@
 import { levels } from '../content';
 import { useSessionStore } from '../store/session';
 import { Crowns } from './Crowns';
+import { InstallButton } from './InstallButton';
 
 function formatTime(sec: number): string {
   const whole = Math.floor(sec);
@@ -47,6 +48,7 @@ export function Results() {
         <button type="button" className="btn" onClick={quit}>
           Levels
         </button>
+        <InstallButton />
         <p className="seed">Seed {result.seed.toString(16)}</p>
       </div>
     </div>

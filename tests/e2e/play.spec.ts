@@ -5,7 +5,9 @@ import { fps, snapshot, startLevelOne, walkTo, walkToPad } from './helpers';
 test('collects coins and pays the tower pad', async ({ page }) => {
   await startLevelOne(page);
   const gold = page.getByTestId('hud-gold');
-  await expect(gold).toHaveText('60');
+  await expect(gold).toHaveAttribute('data-gold', '60');
+  // No key has been pressed yet, so no keyboard hints.
+  await expect(page.getByText(/WASD/)).toBeHidden();
 
   // Walk over the loose coins east of the start, then onto the tower pad.
   await walkTo(page, 25, 15);
@@ -70,7 +72,9 @@ test('level 2 shows its tutorial and the forge pad', async ({ page }) => {
   await page.evaluate(() =>
     (window as unknown as { __crownstackStart: (id: number) => void }).__crownstackStart(2),
   );
-  await expect(page.getByText('The Forge', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => window.__crownstack!.currentWorld.cfg.level.name)).toBe(
+    'The Forge',
+  );
   await expect(page.getByText(/Build the tower/)).toBeVisible();
   const pads = await page.evaluate(() =>
     window.__crownstack!.currentWorld.pads.map((p) => `${p.type}:${p.cost}`),

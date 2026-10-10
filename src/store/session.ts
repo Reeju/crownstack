@@ -14,6 +14,7 @@ export type Screen =
   | 'about'
   | 'playing'
   | 'paused'
+  | 'countdown'
   | 'results'
   | 'fallen';
 
@@ -29,6 +30,8 @@ type SessionState = {
   game: Game | null;
   /** Set when a new service worker is waiting; calling it applies the update. */
   applyUpdate: (() => void) | null;
+  /** Set when the browser has offered to install the app (`beforeinstallprompt`). */
+  installPrompt: (() => Promise<void>) | null;
 
   attachGame: (game: Game | null) => void;
   setHud: (hud: HudState) => void;
@@ -40,7 +43,13 @@ type SessionState = {
   nextLevel: () => void;
   finish: (won: boolean, result: RunResult) => void;
   pause: () => void;
+  /** Starts the 3-2-1 countdown that leads back into play. */
   resume: () => void;
+  /** Called when the countdown ends. */
+  finishCountdown: () => void;
+  /** Asks the browser to install the app, when it has offered to. */
+  install: () => void;
+  setInstallPrompt: (prompt: (() => Promise<void>) | null) => void;
   quit: () => void;
   setUpdateReady: (apply: () => void) => void;
 };
@@ -54,6 +63,8 @@ const EMPTY_HUD: HudState = {
   bannerWave: 0,
   bannerAngle: 0,
   hint: '',
+  keyboard: false,
+  dash: false,
 };
 
 /** Transient UI state for the current browser session (never persisted). */
@@ -78,6 +89,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
     result: null,
     game: null,
     applyUpdate: null,
+    installPrompt: null,
 
     attachGame: (game) => set({ game }),
     setHud: (hud) => set({ hud }),
@@ -114,9 +126,20 @@ export const useSessionStore = create<SessionState>((set, get) => {
 
     resume: () => {
       if (get().screen !== 'paused') return;
+      set({ screen: 'countdown' });
+    },
+
+    finishCountdown: () => {
+      if (get().screen !== 'countdown') return;
       get().game?.resume();
       set({ screen: 'playing' });
     },
+
+    install: () => {
+      void get().installPrompt?.();
+      set({ installPrompt: null });
+    },
+    setInstallPrompt: (installPrompt) => set({ installPrompt }),
 
     quit: () => {
       get().game?.pause();

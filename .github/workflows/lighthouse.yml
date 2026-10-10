@@ -1,0 +1,44 @@
+name: Lighthouse
+
+# Nightly budget check against production (SPEC §8.2). Opens an issue on regression.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Run Lighthouse CI
+        id: lhci
+        run: pnpm dlx @lhci/cli@0.15 autorun
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci
+          if-no-files-found: ignore
+      - name: Open an issue on budget regression
+        if: steps.lhci.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "Lighthouse budget regression ($(date -u +%F))" \
+            --label bug \
+            --body "The nightly Lighthouse run against production missed a budget in \`lighthouserc.json\`. See ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}."
+      - name: Fail the run
+        if: steps.lhci.outcome == 'failure'
+        run: exit 1

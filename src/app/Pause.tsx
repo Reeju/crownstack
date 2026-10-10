@@ -5,6 +5,7 @@ export function Pause() {
   const retry = useSessionStore((s) => s.retry);
   const open = useSessionStore((s) => s.open);
   const quit = useSessionStore((s) => s.quit);
+  const levelName = useSessionStore((s) => s.hud.levelName);
 
   return (
     <div className="screen scrim" role="dialog" aria-modal="true" aria-labelledby="pause-title">
@@ -12,6 +13,7 @@ export function Pause() {
         <h2 id="pause-title" className="panel-title">
           Paused
         </h2>
+        <p className="panel-subtitle">{levelName}</p>
         <button type="button" className="btn btn-primary" autoFocus onClick={resume}>
           Resume
         </button>

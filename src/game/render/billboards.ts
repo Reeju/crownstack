@@ -1,4 +1,5 @@
 import {
+  type BufferGeometry,
   Color,
   DynamicDrawUsage,
   InstancedMesh,
@@ -78,9 +79,9 @@ export class BillboardPool {
     private readonly basis: BillboardBasis,
     private readonly capacity: number,
     anchorLeft = false,
+    geometry: BufferGeometry = new PlaneGeometry(1, 1),
     material: Material = new MeshBasicMaterial({ depthTest: false, transparent: true }),
   ) {
-    const geometry = new PlaneGeometry(1, 1);
     if (anchorLeft) geometry.translate(0.5, 0, 0);
     this.mesh = new InstancedMesh(geometry, material, capacity);
     this.mesh.instanceMatrix.setUsage(DynamicDrawUsage);
