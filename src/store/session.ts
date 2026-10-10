@@ -1,13 +1,26 @@
 import { create } from 'zustand';
 
-import { levels } from '../content';
+import { levels, upgrades } from '../content';
 import type { Game, HudState } from '../game/Game';
+import { metaBonuses } from '../game/sim/meta';
 import type { RunResult } from '../game/sim/score';
+import { useProgressStore } from './progress';
 
-export type Screen = 'title' | 'playing' | 'paused' | 'results' | 'fallen';
+export type Screen =
+  | 'title'
+  | 'levels'
+  | 'upgrades'
+  | 'settings'
+  | 'about'
+  | 'playing'
+  | 'paused'
+  | 'results'
+  | 'fallen';
 
 type SessionState = {
   screen: Screen;
+  /** Where Settings returns to (it opens from both the title and the pause menu). */
+  settingsFrom: Screen;
   hud: HudState;
   levelId: number;
   /** Bumped when a level is started fresh; Retry keeps it so the waves repeat (SPEC §3.6). */
@@ -19,13 +32,16 @@ type SessionState = {
 
   attachGame: (game: Game | null) => void;
   setHud: (hud: HudState) => void;
+  open: (screen: Screen) => void;
+  /** Leaves a menu screen for the one it was opened from. */
+  back: () => void;
   startLevel: (levelId: number) => void;
   retry: () => void;
   nextLevel: () => void;
   finish: (won: boolean, result: RunResult) => void;
   pause: () => void;
   resume: () => void;
-  quitToTitle: () => void;
+  quit: () => void;
   setUpdateReady: (apply: () => void) => void;
 };
 
@@ -43,12 +59,19 @@ const EMPTY_HUD: HudState = {
 /** Transient UI state for the current browser session (never persisted). */
 export const useSessionStore = create<SessionState>((set, get) => {
   const run = (levelId: number, attempt: number): void => {
-    get().game?.start({ levelId, attempt, difficulty: 'normal' });
+    const progress = useProgressStore.getState();
+    get().game?.start({
+      levelId,
+      attempt,
+      difficulty: progress.settings.difficulty,
+      meta: metaBonuses(upgrades, progress.upgrades),
+    });
     set({ screen: 'playing', levelId, attempt, result: null, hud: EMPTY_HUD });
   };
 
   return {
     screen: 'title',
+    settingsFrom: 'title',
     hud: EMPTY_HUD,
     levelId: 1,
     attempt: 0,
@@ -59,15 +82,29 @@ export const useSessionStore = create<SessionState>((set, get) => {
     attachGame: (game) => set({ game }),
     setHud: (hud) => set({ hud }),
 
+    open: (screen) =>
+      set({ screen, settingsFrom: screen === 'settings' ? get().screen : get().settingsFrom }),
+    back: () => {
+      const { screen, settingsFrom } = get();
+      if (screen === 'settings') set({ screen: settingsFrom });
+      else if (screen === 'upgrades') set({ screen: 'levels' });
+      else set({ screen: 'title' });
+    },
+
     startLevel: (levelId) => run(levelId, get().attempt + 1),
     retry: () => run(get().levelId, get().attempt),
     nextLevel: () => {
       const next = get().levelId + 1;
       if (levels.some((l) => l.id === next)) run(next, get().attempt + 1);
-      else get().quitToTitle();
+      else get().quit();
     },
 
-    finish: (won, result) => set({ screen: won ? 'results' : 'fallen', result }),
+    finish: (won, result) => {
+      const { levelId } = get();
+      const progress = useProgressStore.getState();
+      progress.recordRun(levelId, progress.settings.difficulty, won, result);
+      set({ screen: won ? 'results' : 'fallen', result });
+    },
 
     pause: () => {
       if (get().screen !== 'playing') return;
@@ -81,9 +118,9 @@ export const useSessionStore = create<SessionState>((set, get) => {
       set({ screen: 'playing' });
     },
 
-    quitToTitle: () => {
+    quit: () => {
       get().game?.pause();
-      set({ screen: 'title' });
+      set({ screen: 'levels' });
     },
 
     setUpdateReady: (applyUpdate) => set({ applyUpdate }),

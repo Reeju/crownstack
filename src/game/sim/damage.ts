@@ -1,6 +1,6 @@
 import { C, DT, Kind, NO_ENTITY } from './components';
 import { HIT_FLASH_SEC, KNOCK_DECAY, STAGGER_SEC } from './constants';
-import { repeatCost } from './economy';
+import { currentPadCost } from './economy';
 import { Ev, emit } from './events';
 import { spawnCoin } from './spawn';
 import { reassignSlots } from './systems/squadFollow';
@@ -34,11 +34,7 @@ function killTower(w: World, e: number): void {
     if (pad.type === 'tower' && pad.plot === plotIndex) {
       pad.active = true;
       pad.paid = 0;
-      pad.cost = repeatCost(
-        pad.baseCost,
-        w.eco.purchases.tower,
-        w.cfg.units.economy.repeatCostMult,
-      );
+      pad.cost = currentPadCost(w, pad);
     }
   }
   emit(w.events, Ev.UnitDied, w.x[e], w.y[e], Kind.Tower);

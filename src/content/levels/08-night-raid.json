@@ -1,0 +1,227 @@
+{
+  "id": 8,
+  "name": "Night Raid",
+  "map": "river-c",
+  "startGold": 180,
+  "parTimeSec": 240,
+  "coinCap": 60,
+  "night": true,
+  "dash": true,
+  "maxTowerTier": 2,
+  "maxArcherTier": 2,
+  "squad": {
+    "archers": 6,
+    "tier": 0
+  },
+  "pads": [
+    {
+      "type": "tower",
+      "plot": "w-n",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "w-s",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "o-nw",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "o-sw",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "o-ne",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "o-se",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "k-n",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "k-s",
+      "cost": 50
+    },
+    {
+      "type": "forge",
+      "cost": 80,
+      "produces": {
+        "gear": 6
+      }
+    },
+    {
+      "type": "repair",
+      "cost": 30
+    },
+    {
+      "type": "keep",
+      "cost": 200
+    },
+    {
+      "type": "gate",
+      "cost": 40
+    },
+    {
+      "type": "brazier",
+      "cost": 40
+    }
+  ],
+  "waves": [
+    {
+      "at": 6,
+      "path": "s",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.6
+        }
+      ]
+    },
+    {
+      "at": 30,
+      "path": "n",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 2,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 56,
+      "path": "e",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 2,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 86,
+      "path": "s",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 4,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 116,
+      "path": "n",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 18,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 4,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 148,
+      "path": "e",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 20,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 4,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 182,
+      "path": "s",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 22,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 4,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    }
+  ],
+  "tutorial": [
+    {
+      "trigger": "start",
+      "text": "Towers see less far in the dark. Light the brazier.",
+      "pointAt": "pad:brazier"
+    }
+  ]
+}

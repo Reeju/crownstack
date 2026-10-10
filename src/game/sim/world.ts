@@ -55,6 +55,8 @@ export interface PadState {
   /** Index into `world.plots` for tower pads, otherwise -1. */
   readonly plot: number;
   readonly baseCost: number;
+  /** Price multiplier from meta upgrades (1 = none). */
+  readonly discount: number;
   readonly gear: number;
   cost: number;
   paid: number;
@@ -101,13 +103,18 @@ export interface World {
   readonly enemyDefs: readonly EnemyDef[];
   readonly enemyDefIndex: ReadonlyMap<string, number>;
   readonly paths: readonly PathData[];
-  /** Entity id of the fence segment each path ends at. */
+  /** Entity id of the fence or gate each path crosses on its way to the keep. */
   readonly pathTargets: Int32Array;
   readonly walls: readonly StaticBox[];
   readonly rocks: readonly StaticCircle[];
   readonly pads: PadState[];
   readonly plots: PlotState[];
+  /** Palisade segments (repairable). */
   readonly fences: Int32Array;
+  /** Gate segments: open (0 HP) until a gate pad closes them. */
+  readonly gates: Int32Array;
+  /** Fences followed by gates: everything that can block movement and be attacked. */
+  readonly barriers: Int32Array;
   readonly waves: WaveState[];
   /** Living enemies, rebuilt every step. */
   readonly enemyHash: SpatialHash;
@@ -146,6 +153,8 @@ export interface World {
     gearHandoutTimer: number;
     keepTier: number;
     brazierLit: boolean;
+    /** Seconds the gates stay closed; <= 0 means they are open. */
+    gateTimer: number;
     goldEarned: number;
     purchases: Record<PadType, number>;
   };
@@ -203,6 +212,7 @@ export function createEmptyWorld(
   cfg: RunConfig,
   statics: Pick<World, 'paths' | 'walls' | 'rocks' | 'pads' | 'plots' | 'waves'> & {
     fenceCount: number;
+    gateCount: number;
   },
 ): World {
   const n = MAX_ENTITIES;
@@ -222,6 +232,8 @@ export function createEmptyWorld(
     pads: statics.pads,
     plots: statics.plots,
     fences: new Int32Array(statics.fenceCount).fill(NO_ENTITY),
+    gates: new Int32Array(statics.gateCount).fill(NO_ENTITY),
+    barriers: new Int32Array(statics.fenceCount + statics.gateCount).fill(NO_ENTITY),
     waves: statics.waves,
     enemyHash: createSpatialHash(cfg.map.size.w, cfg.map.size.h, n),
     friendHash: createSpatialHash(cfg.map.size.w, cfg.map.size.h, n),
@@ -252,6 +264,7 @@ export function createEmptyWorld(
       gearHandoutTimer: 0,
       keepTier: 0,
       brazierLit: false,
+      gateTimer: 0,
       goldEarned: 0,
       purchases: { tower: 0, forge: 0, repair: 0, keep: 0, brazier: 0, gate: 0 },
     },

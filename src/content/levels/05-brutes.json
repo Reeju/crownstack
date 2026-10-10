@@ -1,0 +1,159 @@
+{
+  "id": 5,
+  "name": "Brutes",
+  "map": "ridge-b",
+  "startGold": 120,
+  "parTimeSec": 180,
+  "coinCap": 60,
+  "dash": true,
+  "maxTowerTier": 2,
+  "squad": {
+    "archers": 5,
+    "tier": 0
+  },
+  "pads": [
+    {
+      "type": "tower",
+      "plot": "n",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "w",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "ne",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "nw",
+      "cost": 50
+    },
+    {
+      "type": "forge",
+      "cost": 80,
+      "produces": {
+        "gear": 6
+      }
+    },
+    {
+      "type": "repair",
+      "cost": 30
+    },
+    {
+      "type": "keep",
+      "cost": 200
+    }
+  ],
+  "waves": [
+    {
+      "at": 5,
+      "path": "n",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 10,
+          "interval": 0.6
+        }
+      ]
+    },
+    {
+      "at": 28,
+      "path": "w",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 10,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 3,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 55,
+      "path": "n",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 12,
+          "interval": 0.5,
+          "delay": 2
+        }
+      ]
+    },
+    {
+      "at": 85,
+      "path": "w",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 12,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 3,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 115,
+      "path": "n",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 12,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 4,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 145,
+      "path": "w",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.5,
+          "delay": 2
+        }
+      ]
+    }
+  ],
+  "tutorial": [
+    {
+      "trigger": "start",
+      "text": "Brutes take three arrows. Towers can be upgraded: stand on the pad again."
+    },
+    {
+      "trigger": "wave>=2",
+      "text": "They are coming from the west as well."
+    }
+  ]
+}

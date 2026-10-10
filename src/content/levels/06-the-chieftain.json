@@ -1,0 +1,180 @@
+{
+  "id": 6,
+  "name": "The Chieftain",
+  "map": "ridge-b",
+  "startGold": 150,
+  "parTimeSec": 210,
+  "coinCap": 60,
+  "dash": true,
+  "maxTowerTier": 2,
+  "squad": {
+    "archers": 6,
+    "tier": 0
+  },
+  "pads": [
+    {
+      "type": "tower",
+      "plot": "n",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "w",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "ne",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "nw",
+      "cost": 50
+    },
+    {
+      "type": "forge",
+      "cost": 80,
+      "produces": {
+        "gear": 6
+      }
+    },
+    {
+      "type": "repair",
+      "cost": 30
+    },
+    {
+      "type": "keep",
+      "cost": 200
+    }
+  ],
+  "waves": [
+    {
+      "at": 5,
+      "path": "n",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 12,
+          "interval": 0.6
+        }
+      ]
+    },
+    {
+      "at": 26,
+      "path": "w",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 12,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 3,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 50,
+      "path": "n",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 12,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 3,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 56,
+      "path": "w",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.5,
+          "delay": 2
+        }
+      ]
+    },
+    {
+      "at": 90,
+      "path": "n",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 3,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 96,
+      "path": "w",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.4
+        },
+        {
+          "type": "brute",
+          "count": 3,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 112,
+      "path": "n",
+      "groups": [
+        {
+          "type": "chieftain",
+          "count": 1,
+          "interval": 0.0
+        }
+      ]
+    }
+  ],
+  "tutorial": [
+    {
+      "trigger": "start",
+      "text": "A chieftain leads this raid. Arm up before he arrives."
+    },
+    {
+      "trigger": "wave>=3",
+      "text": "Both paths at once! Split your towers between them."
+    },
+    {
+      "trigger": "wave>=7",
+      "text": "The chieftain! Stay clear when he raises his club."
+    }
+  ]
+}

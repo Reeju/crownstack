@@ -81,6 +81,7 @@ export const unitsSchema = z.object({
     coinCapPerKeepTier: count,
     maxCoinCap: count,
     maxKeepTier: count,
+    gateCloseSec: positive,
   }),
   difficulty: z.record(
     difficultySchema,
@@ -97,11 +98,13 @@ export const mapSchema = z.object({
   cameraBounds: rect,
   ground: z.object({
     base: z.enum(['grass', 'dirt']),
-    patches: z.array(rect.extend({ type: z.enum(['grass', 'dirt', 'cliff', 'water']) })),
+    patches: z.array(rect.extend({ type: z.enum(['grass', 'dirt', 'cliff', 'water', 'wood']) })),
   }),
   blockers: z.object({
     /** Palisade segments: axis-aligned, destructible, repairable. */
     fences: z.array(z.object({ id, a: vec2, b: vec2 })),
+    /** Like fences, but open until a gate pad closes them for a while. */
+    gates: z.array(z.object({ id, a: vec2, b: vec2 })).default([]),
     /** Impassable rectangles (cliffs, water, building footprints). */
     walls: z.array(rect),
     rocks: z.array(z.object({ pos: vec2, r: positive })),
@@ -178,6 +181,22 @@ export const levelSchema = z.object({
     .default([]),
 });
 
+// ── upgrades.json ────────────────────────────────────────────────────────────
+
+/** Meta upgrades bought with crowns (SPEC §4.4). `bonus` names a field of the run's MetaBonuses. */
+export const upgradesSchema = z.array(
+  z.object({
+    id,
+    name: z.string().min(1),
+    description: z.string().min(1),
+    ranks: z.number().int().positive(),
+    cost: z.number().int().positive(),
+    bonus: z.enum(['coinCap', 'kingHp', 'extraArchers', 'towerCostMult', 'magnetRadius']),
+    perRank: z.number(),
+  }),
+);
+
+export type UpgradeDef = z.infer<typeof upgradesSchema>[number];
 export type Difficulty = z.infer<typeof difficultySchema>;
 export type PadType = z.infer<typeof padTypeSchema>;
 export type EnemyModel = z.infer<typeof enemyModelSchema>;
@@ -194,7 +213,7 @@ export type WaveDef = z.infer<typeof waveSchema>;
 export function crossValidateLevel(level: LevelDef, map: MapDef, units: UnitsDef): string[] {
   const problems: string[] = [];
   const pathIds = new Set(map.paths.map((p) => p.id));
-  const fenceIds = new Set(map.blockers.fences.map((f) => f.id));
+  const fenceIds = new Set([...map.blockers.fences, ...map.blockers.gates].map((f) => f.id));
   const plotIds = new Set(map.plots.map((p) => p.id));
 
   for (const path of map.paths) {

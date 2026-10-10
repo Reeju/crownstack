@@ -2,6 +2,7 @@ import {
   AmbientLight,
   Color,
   DirectionalLight,
+  Fog,
   Mesh,
   MeshBasicMaterial,
   RingGeometry,
@@ -57,6 +58,16 @@ const SHAKE_SEC = 0.12;
 const SHAKE_AMPLITUDE = 0.18;
 /** The king blinks at this rate (Hz) while his i-frames are active. */
 const IFRAME_BLINK_HZ = 12;
+const DAY = { ambientColor: 0xffffff, ambient: 1.5, sunColor: 0xffffff, sun: 2.2 };
+const NIGHT = {
+  ambientColor: 0x6f82d8,
+  ambient: 1.25,
+  /** Ambient level once the brazier is lit. */
+  ambientLit: 1.7,
+  sunColor: 0x8fa5ff,
+  sun: 0.8,
+  fog: 0x0b1030,
+};
 
 /** Render quality tier (SPEC §7.3). */
 export type Quality = 'low' | 'high';
@@ -71,11 +82,16 @@ export class GameRenderer {
   readonly iso = new IsoCamera();
   /** When true, camera shake and bobbing are suppressed (reduced motion). */
   reducedMotion = false;
+  /** When true, enemies carry shape markers (raider triangle, giant square). */
+  colorBlind = false;
   /** Index of the pad the tutorial is pointing at, or -1. */
   pointAtPad = -1;
 
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
+  private readonly ambient = new AmbientLight();
+  private readonly sun = new DirectionalLight();
+  private night = false;
   private readonly material = createModelMaterial();
   private readonly king: Mesh;
   private readonly squadRing: Mesh;
@@ -113,9 +129,8 @@ export class GameRenderer {
     });
     this.scene.background = new Color(PALETTE.background);
 
-    const sun = new DirectionalLight(0xffffff, 2.2);
-    sun.position.set(-6, 14, 8);
-    this.scene.add(new AmbientLight(0xffffff, 1.5), sun);
+    this.sun.position.set(-6, 14, 8);
+    this.scene.add(this.ambient, this.sun);
 
     this.king = new Mesh(kingGeometry(), this.material);
     this.squadRing = new Mesh(
@@ -167,7 +182,8 @@ export class GameRenderer {
     this.level = new LevelView(world, this.material, this.iso.yaw);
     this.pads = new PadView(world, this.iso.yaw);
     this.popups = new Popups(this.basis, world.cfg.units);
-    this.scene.add(this.level.group, this.pads.group, this.popups.mesh);
+    this.scene.add(this.level.group, this.pads.mesh, this.popups.mesh);
+    this.applyLighting(world.cfg.level.night);
     this.squadRing.scale.setScalar(world.cfg.units.archer.ringRadius);
     this.snapCamera = true;
     this.resize(world);
@@ -305,6 +321,7 @@ export class GameRenderer {
     this.barFill.end();
     this.particles.update(frameSec);
     this.popups?.update(frameSec);
+    if (this.night) this.ambient.intensity = w.eco.brazierLit ? NIGHT.ambientLit : NIGHT.ambient;
     this.level?.update(w);
     this.pads?.update(w);
     this.renderer.render(this.scene, this.iso.camera);
@@ -351,6 +368,18 @@ export class GameRenderer {
       default:
         break;
     }
+  }
+
+  /** Day or night palette: night dims and blues the lights and adds dark-blue fog. */
+  private applyLighting(night: boolean): void {
+    const look = night ? NIGHT : DAY;
+    this.night = night;
+    this.ambient.color.setHex(look.ambientColor);
+    this.ambient.intensity = look.ambient;
+    this.sun.color.setHex(look.sunColor);
+    this.sun.intensity = look.sun;
+    this.scene.fog = night ? new Fog(NIGHT.fog, 60, 150) : null;
+    (this.scene.background as Color).setHex(night ? NIGHT.fog : PALETTE.background);
   }
 
   /** Draw calls issued by the last frame. */
@@ -424,7 +453,7 @@ export class GameRenderer {
       this.level = null;
     }
     if (this.pads) {
-      this.scene.remove(this.pads.group);
+      this.scene.remove(this.pads.mesh);
       this.pads.dispose();
       this.pads = null;
     }

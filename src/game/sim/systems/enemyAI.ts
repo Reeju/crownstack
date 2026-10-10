@@ -15,6 +15,9 @@ const RETARGET_STEPS = 10;
 /** Separation looks this far beyond an enemy's own radius for neighbours (largest enemy radius). */
 const SEPARATION_REACH = 1.6;
 
+/** At the end of its path an enemy prefers a tower within this distance over the keep. */
+const SIEGE_TOWER_RADIUS = 7;
+
 /** Scratch: closest point on the current target and the distance to its edge. */
 const reach = { x: 0, y: 0, edge: 0 };
 
@@ -31,12 +34,10 @@ function measure(w: World, x: number, y: number, t: number): void {
   }
 }
 
-/** Structure to attack once the path is done: its fence, else the nearest tower, else the keep. */
+/** Structure to attack once the path is done: a tower close by, otherwise the keep. */
 function siegeTarget(w: World, e: number): number {
-  const fence = w.pathTargets[w.pathId[e]];
-  if (w.hp[fence] > 0) return fence;
   let best = w.keep;
-  let bestDist = Infinity;
+  let bestDist = SIEGE_TOWER_RADIUS;
   for (const plot of w.plots) {
     if (plot.tier === 0) continue;
     const dist = Math.hypot(plot.x - w.x[e], plot.y - w.y[e]);
@@ -121,9 +122,9 @@ function bossAbilities(w: World, e: number): void {
 }
 
 /**
- * Enemy behaviour: follow the path, chase player units that come close, and
- * once the path ends lay siege to the fence, then towers, then the keep.
- * Whatever standing structure blocks an enemy becomes its target.
+ * Enemy behaviour: follow the path all the way to the keep, chasing player
+ * units that come close and breaking whatever fence or closed gate stands in
+ * the way. At the end of the path they attack a nearby tower, else the keep.
  */
 export function enemyAI(w: World): void {
   for (let e = 0; e < w.highWater; e++) {
@@ -144,11 +145,16 @@ export function enemyAI(w: World): void {
         else if (w.state[e] === EnemyState.Siege) setTarget(w, e, siegeTarget(w, e));
         else setTarget(w, e, NO_ENTITY);
       }
-      // A standing structure in the way gets attacked instead.
+      // A standing structure in the way gets attacked instead: the fence or
+      // closed gate across the path, or whatever stands between it and a unit.
       const blocker = w.slot[e];
-      if (blocker !== NO_ENTITY && w.hp[blocker] > 0 && w.target[e] !== NO_ENTITY) {
-        measure(w, w.x[e], w.y[e], w.target[e]);
-        if (reach.edge > w.atkRange[e]) setTarget(w, e, blocker);
+      if (blocker !== NO_ENTITY && w.hp[blocker] > 0) {
+        if (w.target[e] === NO_ENTITY) {
+          setTarget(w, e, blocker);
+        } else {
+          measure(w, w.x[e], w.y[e], w.target[e]);
+          if (reach.edge - w.radius[e] > w.atkRange[e]) setTarget(w, e, blocker);
+        }
       }
 
       const target = w.target[e];

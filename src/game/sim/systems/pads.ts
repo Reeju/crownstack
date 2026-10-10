@@ -1,6 +1,6 @@
 import { DT } from '../components';
 import { PAD_DWELL_SEC, PAD_RADIUS } from '../constants';
-import { repeatCost } from '../economy';
+import { currentPadCost } from '../economy';
 import { Ev, emit } from '../events';
 import { applyTowerTier, spawnArcher, spawnTower } from '../spawn';
 import type { PadState, World } from '../world';
@@ -20,10 +20,14 @@ function anyFenceDamaged(w: World): boolean {
   return false;
 }
 
-/** A pad accepts coins only while its purchase would do something. */
+/**
+ * A pad accepts coins only while its purchase would do something, and not
+ * straight after it triggered (the king has to step off first).
+ */
 export function padUsable(w: World, pad: PadState): boolean {
-  if (!pad.active) return false;
+  if (!pad.active || pad.latched) return false;
   if (pad.type === 'repair') return anyFenceDamaged(w);
+  if (pad.type === 'gate') return w.eco.gateTimer <= 0;
   return true;
 }
 
@@ -84,6 +88,9 @@ function triggerPad(w: World, pad: PadState, index: number): void {
       more = false;
       break;
     case 'gate':
+      // Gates slam shut for a while; enemies must break them or wait them out.
+      eco.gateTimer = units.economy.gateCloseSec;
+      for (let i = 0; i < w.gates.length; i++) w.hp[w.gates[i]] = w.maxHp[w.gates[i]];
       break;
   }
 
@@ -91,7 +98,7 @@ function triggerPad(w: World, pad: PadState, index: number): void {
   pad.paid = 0;
   pad.latched = true;
   pad.active = more;
-  pad.cost = repeatCost(pad.baseCost, eco.purchases[pad.type], units.economy.repeatCostMult);
+  pad.cost = currentPadCost(w, pad);
   emit(w.events, Ev.PadPaid, pad.x, pad.y, index);
 }
 
@@ -104,10 +111,17 @@ export function padSystem(w: World): void {
   const { economy } = w.cfg.units;
   const canPay = w.outcome === 'playing' && w.hp[hero] > 0;
 
+  if (w.eco.gateTimer > 0) {
+    w.eco.gateTimer -= DT;
+    if (w.eco.gateTimer <= 0) {
+      for (let i = 0; i < w.gates.length; i++) w.hp[w.gates[i]] = 0;
+    }
+  }
+
   // Sibling pads of the same type share a rising price (SPEC §3.4).
   for (const pad of w.pads) {
     if (pad.paid === 0 && pad.active) {
-      pad.cost = repeatCost(pad.baseCost, w.eco.purchases[pad.type], economy.repeatCostMult);
+      pad.cost = currentPadCost(w, pad);
     }
   }
 
@@ -117,7 +131,7 @@ export function padSystem(w: World): void {
     // A pad that just triggered re-arms only after the king steps off it, so
     // standing still never rolls straight into the next, pricier purchase.
     if (!standing) pad.latched = false;
-    const onPad = standing && canPay && !pad.latched && padUsable(w, pad);
+    const onPad = standing && canPay && padUsable(w, pad);
     if (!onPad) {
       pad.paying = false;
       pad.dwell = 0;

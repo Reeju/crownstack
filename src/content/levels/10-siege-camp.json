@@ -1,0 +1,268 @@
+{
+  "id": 10,
+  "name": "Siege Camp",
+  "map": "fortress-d",
+  "startGold": 250,
+  "parTimeSec": 300,
+  "coinCap": 60,
+  "dash": true,
+  "maxTowerTier": 3,
+  "maxArcherTier": 2,
+  "squad": {
+    "archers": 8,
+    "tier": 0
+  },
+  "pads": [
+    {
+      "type": "tower",
+      "plot": "n2",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "n3",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "e2",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "e3",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "s2",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "s3",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "w2",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "w3",
+      "cost": 50
+    },
+    {
+      "type": "forge",
+      "cost": 80,
+      "produces": {
+        "gear": 6
+      }
+    },
+    {
+      "type": "repair",
+      "cost": 30
+    },
+    {
+      "type": "keep",
+      "cost": 200
+    },
+    {
+      "type": "gate",
+      "cost": 60
+    }
+  ],
+  "waves": [
+    {
+      "at": 6,
+      "path": "n",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.6
+        }
+      ]
+    },
+    {
+      "at": 30,
+      "path": "e",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 2,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 56,
+      "path": "s",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 2,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 84,
+      "path": "w",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 3,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 114,
+      "path": "n",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 18,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 4,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 144,
+      "path": "e",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 18,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 4,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 176,
+      "path": "s",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 20,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 5,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 208,
+      "path": "w",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 22,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 5,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 240,
+      "path": "n",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 22,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 5,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    }
+  ],
+  "tutorial": [
+    {
+      "trigger": "start",
+      "text": "Four gates stand open. Pay the gate pad to shut them all for a while.",
+      "pointAt": "pad:gate"
+    }
+  ]
+}

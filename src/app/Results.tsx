@@ -1,5 +1,6 @@
 import { levels } from '../content';
 import { useSessionStore } from '../store/session';
+import { Crowns } from './Crowns';
 
 function formatTime(sec: number): string {
   const whole = Math.floor(sec);
@@ -12,7 +13,7 @@ export function Results() {
   const levelId = useSessionStore((s) => s.levelId);
   const nextLevel = useSessionStore((s) => s.nextLevel);
   const retry = useSessionStore((s) => s.retry);
-  const quitToTitle = useSessionStore((s) => s.quitToTitle);
+  const quit = useSessionStore((s) => s.quit);
   if (!result) return null;
   const hasNext = levels.some((l) => l.id === levelId + 1);
 
@@ -22,17 +23,7 @@ export function Results() {
         <h2 id="results-title" className="panel-title">
           Camp defended!
         </h2>
-        <div className="crowns" role="img" aria-label={`${result.crowns} of 3 crowns`}>
-          {[1, 2, 3].map((n) => (
-            <span
-              key={n}
-              className={n <= result.crowns ? 'crown earned' : 'crown'}
-              aria-hidden="true"
-            >
-              ♛
-            </span>
-          ))}
-        </div>
+        <Crowns earned={result.crowns} />
         <dl className="stats">
           <dt>Score</dt>
           <dd data-testid="result-score">{result.score}</dd>
@@ -53,8 +44,8 @@ export function Results() {
         <button type="button" className="btn" autoFocus={!hasNext} onClick={retry}>
           Play again
         </button>
-        <button type="button" className="btn" onClick={quitToTitle}>
-          Menu
+        <button type="button" className="btn" onClick={quit}>
+          Levels
         </button>
         <p className="seed">Seed {result.seed.toString(16)}</p>
       </div>

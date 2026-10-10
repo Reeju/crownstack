@@ -1,0 +1,204 @@
+{
+  "id": 7,
+  "name": "Riverside",
+  "map": "river-c",
+  "startGold": 150,
+  "parTimeSec": 210,
+  "coinCap": 60,
+  "dash": true,
+  "maxTowerTier": 2,
+  "maxArcherTier": 2,
+  "squad": {
+    "archers": 6,
+    "tier": 0
+  },
+  "pads": [
+    {
+      "type": "tower",
+      "plot": "w-n",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "w-s",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "o-nw",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "o-sw",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "o-ne",
+      "cost": 50
+    },
+    {
+      "type": "tower",
+      "plot": "o-se",
+      "cost": 50
+    },
+    {
+      "type": "forge",
+      "cost": 80,
+      "produces": {
+        "gear": 6
+      }
+    },
+    {
+      "type": "repair",
+      "cost": 30
+    },
+    {
+      "type": "keep",
+      "cost": 200
+    },
+    {
+      "type": "gate",
+      "cost": 40
+    }
+  ],
+  "waves": [
+    {
+      "at": 6,
+      "path": "s",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 12,
+          "interval": 0.6
+        }
+      ]
+    },
+    {
+      "at": 30,
+      "path": "e",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 12,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 2,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 56,
+      "path": "s",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.5,
+          "delay": 2
+        }
+      ]
+    },
+    {
+      "at": 84,
+      "path": "e",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 14,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 4,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 112,
+      "path": "s",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 4,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 142,
+      "path": "e",
+      "groups": [
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.5
+        },
+        {
+          "type": "brute",
+          "count": 3,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    },
+    {
+      "at": 172,
+      "path": "s",
+      "groups": [
+        {
+          "type": "giant",
+          "count": 1,
+          "interval": 1.5
+        },
+        {
+          "type": "raider",
+          "count": 16,
+          "interval": 0.5,
+          "delay": 2
+        },
+        {
+          "type": "brute",
+          "count": 3,
+          "interval": 0.9,
+          "delay": 3
+        }
+      ]
+    }
+  ],
+  "tutorial": [
+    {
+      "trigger": "start",
+      "text": "The forge is across the bridge. Two forge batches turn archers gold."
+    },
+    {
+      "trigger": "wave>=2",
+      "text": "Close the bridge gate to hold them at the river.",
+      "pointAt": "pad:gate"
+    }
+  ]
+}
