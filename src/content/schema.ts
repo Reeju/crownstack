@@ -133,6 +133,13 @@ const waveSchema = z.object({
     .min(1),
 });
 
+/**
+ * Tutorial hints fire in order, each when its trigger first becomes true:
+ * `start`, `gearCarried`, `fenceDamaged`, `gold>=N`, `wave>=N`, `padPaid:<type>`.
+ */
+const TUTORIAL_TRIGGER =
+  /^(start|gearCarried|fenceDamaged|gold>=\d+|wave>=\d+|padPaid:(tower|forge|repair|keep|brazier|gate))$/;
+
 export const levelSchema = z.object({
   id: z.number().int().min(1),
   name: z.string().min(1),
@@ -158,7 +165,16 @@ export const levelSchema = z.object({
   chests: z.array(z.object({ pos: vec2, coins: z.number().int().positive() })).default([]),
   waves: z.array(waveSchema).min(1),
   tutorial: z
-    .array(z.object({ trigger: z.string(), text: z.string(), pointAt: z.string().optional() }))
+    .array(
+      z.object({
+        trigger: z.string().regex(TUTORIAL_TRIGGER),
+        text: z.string().min(1),
+        pointAt: z
+          .string()
+          .regex(/^pad:[\w-]+$/)
+          .optional(),
+      }),
+    )
     .default([]),
 });
 
@@ -198,6 +214,17 @@ export function crossValidateLevel(level: LevelDef, map: MapDef, units: UnitsDef
         `level ${level.id}: no ${pad.type} pad${pad.plot ? ` on plot "${pad.plot}"` : ''} in map ${map.id}`,
       );
     }
+  }
+  for (const hint of level.tutorial) {
+    if (!hint.pointAt) continue;
+    const padId = hint.pointAt.slice('pad:'.length);
+    const mapPad = map.pads.find((m) => m.id === padId);
+    const enabled =
+      mapPad && level.pads.some((p) => p.type === mapPad.type && p.plot === mapPad.plot);
+    if (!enabled)
+      problems.push(
+        `level ${level.id}: tutorial points at "${hint.pointAt}", which is not enabled`,
+      );
   }
   level.waves.forEach((wave, i) => {
     if (!pathIds.has(wave.path))

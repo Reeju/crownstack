@@ -38,8 +38,8 @@ function resolveCircle(w: World, e: number, cx: number, cy: number, cr: number):
 }
 
 /**
- * Keeps walking units out of standing fences, the keep, walls, rocks and
- * towers, and inside the map. Enemies remember the structure that blocked
+ * Keeps walking units out of standing fences (archers excepted), the keep,
+ * walls, rocks and towers, and inside the map. Enemies remember the structure that blocked
  * them (in `slot`) so the AI can attack what is in the way.
  */
 export function collisions(w: World): void {
@@ -52,7 +52,9 @@ export function collisions(w: World): void {
     const isEnemy = kind === Kind.Enemy;
     if (isEnemy) w.slot[e] = NO_ENTITY;
 
-    for (let i = 0; i < w.fences.length; i++) {
+    // Squad archers hop their own palisade: they steer straight for their slot
+    // with no pathfinding, and would otherwise be stranded when the king uses the gate.
+    for (let i = 0; kind !== Kind.Archer && i < w.fences.length; i++) {
       const f = w.fences[i];
       if (w.hp[f] <= 0) continue;
       if (resolveBox(w, e, w.x[f], w.y[f], w.hw[f], w.hh[f]) && isEnemy) w.slot[e] = f;

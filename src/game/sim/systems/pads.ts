@@ -89,6 +89,7 @@ function triggerPad(w: World, pad: PadState, index: number): void {
 
   eco.purchases[pad.type]++;
   pad.paid = 0;
+  pad.latched = true;
   pad.active = more;
   pad.cost = repeatCost(pad.baseCost, eco.purchases[pad.type], units.economy.repeatCostMult);
   emit(w.events, Ev.PadPaid, pad.x, pad.y, index);
@@ -112,8 +113,11 @@ export function padSystem(w: World): void {
 
   for (let i = 0; i < w.pads.length; i++) {
     const pad = w.pads[i];
-    const onPad =
-      canPay && padUsable(w, pad) && Math.hypot(w.x[hero] - pad.x, w.y[hero] - pad.y) < PAD_RADIUS;
+    const standing = Math.hypot(w.x[hero] - pad.x, w.y[hero] - pad.y) < PAD_RADIUS;
+    // A pad that just triggered re-arms only after the king steps off it, so
+    // standing still never rolls straight into the next, pricier purchase.
+    if (!standing) pad.latched = false;
+    const onPad = standing && canPay && !pad.latched && padUsable(w, pad);
     if (!onPad) {
       pad.paying = false;
       pad.dwell = 0;
@@ -125,7 +129,12 @@ export function padSystem(w: World): void {
 
     pad.drawAcc += economy.padDrawPerSec * DT;
     pad.paying = availableGold(w, pad) > 0;
-    while (pad.drawAcc >= economy.coinValue && availableGold(w, pad) > 0 && pad.active) {
+    while (
+      pad.drawAcc >= economy.coinValue &&
+      availableGold(w, pad) > 0 &&
+      pad.active &&
+      !pad.latched
+    ) {
       pad.drawAcc -= economy.coinValue;
       drawCoin(w, pad);
       emit(w.events, Ev.PadCoin, pad.x, pad.y, i);

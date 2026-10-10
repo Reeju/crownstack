@@ -391,3 +391,22 @@ body {
     animation: none;
   }
 }
+
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(72px + var(--safe-bottom));
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(92vw, 520px);
+  margin: 0;
+  padding: 10px 18px;
+  border-radius: 16px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1.05rem;
+  text-align: center;
+  color: var(--text);
+  background: rgb(27 31 42 / 86%);
+  pointer-events: none;
+}

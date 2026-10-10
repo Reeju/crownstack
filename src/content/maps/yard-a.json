@@ -248,7 +248,7 @@
       "id": "tower-ne",
       "type": "tower",
       "plot": "ne",
-      "pos": [30, 13.6]
+      "pos": [29.6, 14]
     },
     {
       "id": "tower-sw",
@@ -260,7 +260,7 @@
       "id": "tower-se",
       "type": "tower",
       "plot": "se",
-      "pos": [32.2, 23.6]
+      "pos": [30.4, 23.2]
     },
     {
       "id": "forge",
@@ -270,7 +270,7 @@
     {
       "id": "repair",
       "type": "repair",
-      "pos": [31, 19]
+      "pos": [29.5, 19]
     },
     {
       "id": "keep",

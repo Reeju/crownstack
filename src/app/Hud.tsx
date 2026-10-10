@@ -39,6 +39,12 @@ export function Hud() {
         />
       )}
 
+      {hud.hint && (
+        <p className="hint" role="status">
+          {hud.hint}
+        </p>
+      )}
+
       {hud.keepHp < 100 && (
         <div
           className="keep-hp"

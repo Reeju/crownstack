@@ -65,6 +65,8 @@ export interface PadState {
   dwell: number;
   /** Fractional gold owed by the draw-rate accumulator. */
   drawAcc: number;
+  /** Set when the pad triggers; it takes no more coins until the king steps off. */
+  latched: boolean;
 }
 
 export interface PlotState {

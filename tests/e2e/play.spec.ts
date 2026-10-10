@@ -63,3 +63,17 @@ test('falls when the king dies, and Retry replays the same seed', async ({ page 
   expect(await page.evaluate(() => window.__crownstack!.currentWorld.cfg.seed)).toBe(seed);
   expect((await snapshot(page)).outcome).toBe('playing');
 });
+
+test('level 2 shows its tutorial and the forge pad', async ({ page }) => {
+  await page.goto('/?debug=1&quality=low');
+  await page.waitForFunction(() => window.__crownstack !== undefined);
+  await page.evaluate(() =>
+    (window as unknown as { __crownstackStart: (id: number) => void }).__crownstackStart(2),
+  );
+  await expect(page.getByText('The Forge', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Build the tower/)).toBeVisible();
+  const pads = await page.evaluate(() =>
+    window.__crownstack!.currentWorld.pads.map((p) => `${p.type}:${p.cost}`),
+  );
+  expect(pads).toEqual(['tower:50', 'forge:80']);
+});

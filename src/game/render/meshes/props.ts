@@ -128,3 +128,11 @@ export function brazierGeometry(): BufferGeometry {
     { geo: cyl(0.4, 0.22, 0.3, 6), color: PALETTE.stoneDark, at: [0, 0.9, 0] },
   ]);
 }
+
+/** Downward-pointing marker the tutorial bounces over a pad. */
+export function pointerGeometry(): BufferGeometry {
+  return mergeParts([
+    { geo: cone(0.45, 0.8, 4), color: PALETTE.gold, at: [0, 0.4, 0], rot: [Math.PI, 0, 0] },
+    { geo: box(0.28, 0.6, 0.28), color: PALETTE.gold, at: [0, 1.05, 0] },
+  ]);
+}
