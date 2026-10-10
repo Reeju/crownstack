@@ -38,4 +38,6 @@ export default tseslint.config(
     files: ['scripts/**', '*.config.{js,ts}', 'tests/**'],
     languageOptions: { globals: globals.node },
   },
+  // Playwright scripts pass callbacks that run inside the page.
+  { files: ['scripts/capture.mjs'], languageOptions: { globals: globals.browser } },
 );

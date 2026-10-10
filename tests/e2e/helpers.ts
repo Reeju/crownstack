@@ -37,9 +37,14 @@ export function snapshot(page: Page): Promise<Snapshot> {
   });
 }
 
+/**
+ * Holds exactly the wanted keys. Wanted keys are pressed again on every call,
+ * like keyboard auto-repeat: the game drops held keys when the window blurs,
+ * and a one-off keydown would leave the king standing still.
+ */
 async function setKeys(page: Page, held: Set<string>, want: Set<string>): Promise<void> {
   for (const key of KEYS) {
-    if (want.has(key) && !held.has(key)) await page.keyboard.down(key);
+    if (want.has(key)) await page.keyboard.down(key);
     if (!want.has(key) && held.has(key)) await page.keyboard.up(key);
   }
   held.clear();
@@ -85,6 +90,7 @@ export async function startLevelOne(page: Page): Promise<void> {
   // Low quality keeps software-rendered CI browsers at a playable frame rate.
   await page.goto('/?debug=1&quality=low');
   await page.getByRole('button', { name: 'Play' }).click();
+  await page.getByRole('button', { name: 'Pause' }).waitFor();
   await page.waitForFunction(() => window.__crownstack?.currentWorld.tick !== undefined);
 }
 

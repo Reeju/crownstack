@@ -1,7 +1,7 @@
 {
   "name": "crownstack",
   "version": "0.1.0",
-  "description": "Crownstack — a hero-defense PWA: stack gold, arm your archers, hold the palisade.",
+  "description": "Crownstack \u2014 a hero-defense PWA: stack gold, arm your archers, hold the palisade.",
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/check-precache.mjs",
@@ -10,11 +10,12 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "bench": "vitest bench --run",
     "size": "size-limit",
     "e2e": "playwright test",
     "icons": "node scripts/gen-icons.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "capture": "node scripts/capture.mjs",
+    "bot": "vitest run --config vitest.bot.config.ts --disable-console-intercept"
   },
   "license": "MIT",
   "devEngines": {

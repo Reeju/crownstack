@@ -1,13 +1,14 @@
 import { C, CoinState, EnemyState, Kind, NO_ENTITY, Team } from './components';
 import {
+  ARROW_LIFETIME_SEC,
+  CHEST_RADIUS,
   COIN_PICKUP_DELAY_SEC,
   COIN_RADIUS,
-  CHEST_RADIUS,
   FENCE_HALF_THICKNESS,
 } from './constants';
 import { Ev, emit } from './events';
 import { samplePath, pathSample } from './pathing';
-import { alloc, place, type World } from './world';
+import { alloc, place, setTarget, type World } from './world';
 
 const UNIT = C.Transform | C.Velocity | C.Health;
 
@@ -145,5 +146,20 @@ export function spawnKeep(w: World, x: number, y: number, width: number, height:
   w.hw[e] = width / 2;
   w.hh[e] = height / 2;
   w.hp[e] = w.maxHp[e] = w.cfg.units.keep.hp;
+  return e;
+}
+
+/** Fires a homing arrow from `shooter` at `target`; it carries the shooter's damage. */
+export function spawnArrow(w: World, shooter: number, target: number): number {
+  const e = alloc(w, Kind.Arrow, C.Transform | C.Velocity | C.Lifetime, Team.Player);
+  if (e === NO_ENTITY) return e;
+  place(w, e, w.x[shooter], w.y[shooter]);
+  w.damage[e] = w.damage[shooter];
+  w.timer[e] = ARROW_LIFETIME_SEC;
+  w.facing[e] = Math.atan2(w.y[target] - w.y[shooter], w.x[target] - w.x[shooter]);
+  // `value` records whether the arrow left a tower, so the renderer can start it high.
+  w.value[e] = w.kind[shooter] === Kind.Tower ? 1 : 0;
+  setTarget(w, e, target);
+  emit(w.events, Ev.ArrowFired, w.x[e], w.y[e]);
   return e;
 }

@@ -18,8 +18,15 @@ export function GameCanvas() {
         if (screen === 'playing') pause();
         else if (screen === 'paused' && !document.hidden) resume();
       },
+      onOutcome: (won, result) => useSessionStore.getState().finish(won, result),
     });
     store.attachGame(game);
+    // `?debug=1`: lets the capture script and e2e tests jump straight to a level.
+    if (new URLSearchParams(location.search).has('debug')) {
+      (window as unknown as { __crownstackStart?: (id: number) => void }).__crownstackStart = (
+        id,
+      ) => useSessionStore.getState().startLevel(id);
+    }
     return () => {
       useSessionStore.getState().attachGame(null);
       game.dispose();
