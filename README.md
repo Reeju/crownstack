@@ -46,7 +46,7 @@ pnpm dev
 | `pnpm lint`      | ESLint + Prettier check                                                                |
 | `pnpm typecheck` | `tsc --noEmit` (strict)                                                                |
 | `pnpm test`      | Vitest: simulation, economy, waves, content, save migrations, every level won by a bot |
-| `pnpm size`      | Initial JS budget (350 KB gzip)                                                        |
+| `pnpm size`      | JavaScript budget (350 KB gzip, all chunks)                                            |
 | `pnpm e2e`       | Playwright (desktop + Pixel 7) against `pnpm preview`; run `pnpm build` first          |
 | `pnpm bot`       | Level-tuning table: careful and naive bots on every level                              |
 | `pnpm capture`   | Scripted headless playthrough with screenshots (`VIDEO=1` for a WebM)                  |
@@ -77,13 +77,14 @@ The full design is in [SPEC.md](SPEC.md). Choices the spec leaves open are logge
 
 ## Budgets
 
-| Budget                        | Target                        | Now     | Enforced by                        |
-| ----------------------------- | ----------------------------- | ------- | ---------------------------------- |
-| Initial JS (gzip)             | ≤ 350 KB                      | ~253 KB | `pnpm size` in CI                  |
-| Precache                      | ≤ 5 MB                        | ~1 MB   | `pnpm build`                       |
-| Simulation step, 300 entities | ≤ 3 ms                        | ~0.7 ms | unit test                          |
-| Draw calls                    | ≤ 40                          | 18–25   | e2e on level 10                    |
-| Lighthouse (mobile)           | Perf ≥ 90, A11y ≥ 95, BP ≥ 95 | nightly | `.github/workflows/lighthouse.yml` |
+| Budget                                | Target                        | Now                                   | Enforced by                                 |
+| ------------------------------------- | ----------------------------- | ------------------------------------- | ------------------------------------------- |
+| JS, all chunks (gzip)                 | ≤ 350 KB                      | ~246 KB (87 KB entry + 159 KB engine) | `pnpm size` in CI                           |
+| Precache                              | ≤ 5 MB                        | ~1 MB                                 | `pnpm build`                                |
+| Simulation step, 300 entities         | ≤ 3 ms                        | ~0.7 ms                               | unit test                                   |
+| Draw calls                            | ≤ 40                          | 18–25                                 | e2e on level 10                             |
+| Lighthouse (mobile)                   | Perf ≥ 90, A11y ≥ 95, BP ≥ 95 | 93 / 100 / 100                        | nightly, `.github/workflows/lighthouse.yml` |
+| Time to interactive (slow 4G, 4× CPU) | ≤ 2.5 s                       | ~3.0 s (DECISIONS #46)                | nightly, asserted at 3.5 s                  |
 
 ## Before tagging 1.0
 
