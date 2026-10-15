@@ -77,14 +77,14 @@ The full design is in [SPEC.md](SPEC.md). Choices the spec leaves open are logge
 
 ## Budgets
 
-| Budget                                | Target                        | Now                                   | Enforced by                                 |
-| ------------------------------------- | ----------------------------- | ------------------------------------- | ------------------------------------------- |
-| JS, all chunks (gzip)                 | ≤ 350 KB                      | ~246 KB (87 KB entry + 159 KB engine) | `pnpm size` in CI                           |
-| Precache                              | ≤ 5 MB                        | ~1 MB                                 | `pnpm build`                                |
-| Simulation step, 300 entities         | ≤ 3 ms                        | ~0.7 ms                               | unit test                                   |
-| Draw calls                            | ≤ 40                          | 18–25                                 | e2e on level 10                             |
-| Lighthouse (mobile)                   | Perf ≥ 90, A11y ≥ 95, BP ≥ 95 | 93 / 100 / 100                        | nightly, `.github/workflows/lighthouse.yml` |
-| Time to interactive (slow 4G, 4× CPU) | ≤ 2.5 s                       | ~3.0 s (DECISIONS #46)                | nightly, asserted at 3.5 s                  |
+| Budget                                | Target                        | Now                                       | Enforced by                                                  |
+| ------------------------------------- | ----------------------------- | ----------------------------------------- | ------------------------------------------------------------ |
+| JS, all chunks (gzip)                 | ≤ 350 KB                      | ~246 KB (87 KB entry + 159 KB engine)     | `pnpm size` in CI                                            |
+| Precache                              | ≤ 5 MB                        | ~1 MB                                     | `pnpm build`                                                 |
+| Simulation step, 300 entities         | ≤ 3 ms                        | ~0.7 ms                                   | unit test                                                    |
+| Draw calls                            | ≤ 40                          | 18–25                                     | e2e on level 10                                              |
+| Lighthouse (mobile)                   | Perf ≥ 90, A11y ≥ 95, BP ≥ 95 | 88–98 / 100 / 100 on a machine with a GPU | nightly: A11y and BP enforced, Perf reported (DECISIONS #48) |
+| Time to interactive (slow 4G, 4× CPU) | ≤ 2.5 s                       | ~3.0 s on a machine with a GPU            | nightly, reported as a warning (DECISIONS #46, #48)          |
 
 ## Before tagging 1.0
 

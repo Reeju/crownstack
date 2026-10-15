@@ -1,6 +1,7 @@
 name: Lighthouse
 
-# Nightly budget check against production (SPEC §8.2). Opens an issue on regression.
+# Nightly budget check against production (SPEC §8.2). Reports a regression on a
+# single tracking issue rather than opening a new one every night.
 on:
   schedule:
     - cron: '17 3 * * *'
@@ -20,25 +21,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - name: Run Lighthouse CI
-        id: lhci
-        run: pnpm dlx @lhci/cli@0.15 autorun
-        continue-on-error: true
+      # Collect and keep the reports first, so they survive a failed assertion.
+      - name: Collect
+        run: pnpm dlx @lhci/cli@0.15 collect
+      - name: Save reports
+        run: pnpm dlx @lhci/cli@0.15 upload
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: lighthouse-reports
           path: .lighthouseci
-          if-no-files-found: ignore
-      - name: Open an issue on budget regression
-        if: steps.lhci.outcome == 'failure'
+          include-hidden-files: true
+      - name: Assert budgets
+        id: assert
+        run: pnpm dlx @lhci/cli@0.15 assert
+        continue-on-error: true
+      - name: Report a regression on the tracking issue
+        if: steps.assert.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh issue create \
-            --title "Lighthouse budget regression ($(date -u +%F))" \
-            --label bug \
-            --body "The nightly Lighthouse run against production missed a budget in \`lighthouserc.json\`. See ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}."
-      - name: Fail the run
-        if: steps.lhci.outcome == 'failure'
-        run: exit 1
+          body="The nightly Lighthouse run on $(date -u +%F) missed a budget in \`lighthouserc.json\`. Reports: $RUN_URL"
+          issue=$(gh issue list --state open --label lighthouse --json number -q '.[0].number')
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body "$body"
+          else
+            gh label create lighthouse --color FBCA04 --description "Nightly Lighthouse budget" 2>/dev/null || true
+            gh issue create --title "Lighthouse budget regression" --label bug --label lighthouse --body "$body"
+          fi
+          exit 1
