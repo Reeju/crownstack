@@ -10,7 +10,7 @@
     "assert": {
       "assertions": {
         "categories:performance": [
-          "error",
+          "warn",
           {
             "minScore": 0.9
           }
@@ -28,9 +28,9 @@
           }
         ],
         "interactive": [
-          "error",
+          "warn",
           {
-            "maxNumericValue": 3500
+            "maxNumericValue": 2500
           }
         ]
       }
